@@ -1,5 +1,4 @@
 torch
 transformers
 datasets
-bleu
-bert-score
+nltk

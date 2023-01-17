@@ -13,7 +13,7 @@ from torch.optim import Adam
 from datasets import load_dataset
 from transformers import BartForConditionalGeneration, AutoTokenizer
 
-from model.paraconfee import ParaConfee
+from model.model import Paraphraser
 from model.dataset import *
 
 model_id = "facebook/bart-base"
@@ -54,26 +54,27 @@ def main(args):
     # Load model
     bart_model = BartForConditionalGeneration.from_pretrained(model_id)
     bart_tokenizer = AutoTokenizer.from_pretrained(model_id)
-    model = ParaConfee(
+    model = Paraphraser(
         bart_model,
         bart_tokenizer,
         num_beams=args.num_beams,
         num_beam_groups=args.num_beam_groups,
-        from_batch_neg_examples=args.from_batch_neg_examples,
         diversity_penalty=args.diversity_penalty,
-        difference_hinge_lambda=args.difference_hinge_lambda,
-        ordering_hinge_lambda=args.ordering_hinge_lambda,
+        contrast_lambda=args.contrast_lambda,
         device=device
     ).to(device)
-    if args.from_checkpoint is not None:
-        assert os.path.isdir(args.model_store_path)
-        model_load_path = os.path.join(args.model_store_path, args.from_checkpoint)
-        assert os.path.isdir(model_load_path)
-        last_checkpoint = sorted([f for f in os.listdir(model_load_path) if f.endswith(".pt")], reverse=True)[0]
-        model_load_path = os.path.join(model_load_path, last_checkpoint)
-        model.load_state_dict(torch.load(model_load_path))
-        model.device = device
-        model = model.to(device)
+    if args.fine_tune:
+        if args.from_checkpoint is not None:
+            assert os.path.isdir(args.model_store_path)
+            model_load_path = os.path.join(args.model_store_path, args.from_checkpoint)
+            assert os.path.isdir(model_load_path)
+            last_checkpoint = sorted([f for f in os.listdir(model_load_path) if f.endswith(".pt")], reverse=True)[0]
+            model_load_path = os.path.join(model_load_path, last_checkpoint)
+            model.load_state_dict(torch.load(model_load_path))
+            model.device = device
+            model = model.to(device)
+        else:
+            raise ValueError("To use `fine_tune` arg, `from_checkpoint` must be specified.")
 
     # Load data
     with open(args.train_gen_data, "r", encoding='UTF-8') as file:
@@ -84,41 +85,20 @@ def main(args):
     train_gen_loader = DataLoader(train_gen_dataset, shuffle=True, batch_size=args.batch_size, collate_fn=pg_collate_fn)
     dev_gen_dataset = ParaphraseGenerationDataset(dev_data, shuffle=False)
     dev_gen_loader = DataLoader(dev_gen_dataset, shuffle=False, batch_size=args.batch_size, collate_fn=pg_collate_fn)
-    with open(args.train_ident_data, "r", encoding='UTF-8') as file:
-        train_data = json.load(file)
-    with open(args.dev_ident_data, "r", encoding='UTF-8') as file:
-        dev_data = json.load(file)
-    train_ident_dataset = ParaphraseIdentificationDataset(train_data)
-    train_ident_loader = DataLoader(train_ident_dataset, shuffle=True, batch_size=args.batch_size, collate_fn=pi_collate_fn)
-    dev_ident_dataset = ParaphraseIdentificationDataset(dev_data)
-    dev_ident_loader = DataLoader(dev_ident_dataset, shuffle=False, batch_size=args.batch_size, collate_fn=pi_collate_fn)
 
     # Define criteria and optimizer
-    def criteria(gen_inputs, gen_outputs, ident_input1, ident_input2, ident_labels, debug=False):
-        loss = 0
-        if args.generation_loss_weight > 0:
-            new_loss = model.get_generation_loss(gen_inputs, gen_outputs)
-            loss += args.generation_loss_weight * new_loss
-            if debug:
-                logger.info(f"Paraphrase Generation loss = {new_loss}")
-        if args.bc_classification_loss_weight > 0 or args.bc_distance_loss_weight > 0 or args.bc_ordering_loss_weight > 0:
-            new_loss= model.get_beam_contrast_loss(
-                gen_inputs, gen_outputs,
-                classification_loss_weight=args.bc_classification_loss_weight,
-                distance_loss_weight=args.bc_distance_loss_weight,
-                ordering_loss_weight=args.bc_ordering_loss_weight
-            )
+    def criteria(gen_inputs, gen_outputs, debug=True):
+        # NLL loss from the decoder head
+        loss = model.get_generation_loss(gen_inputs, gen_outputs)
+        if debug:
+            logger.info(f"NLL loss = {loss}")
+
+        # Contrast learning in fine-tune state
+        if args.fine_tune:
+            new_loss= model.get_contrastive_loss(gen_inputs)
             loss += new_loss
             if debug:
-                logger.info(f"Paraphrase Generation beam contrast loss = {new_loss / (args.bc_classification_loss_weight + args.bc_distance_loss_weight + args.bc_ordering_loss_weight)}")
-        if args.identification_loss_weight > 0:
-            ident_outputs = model.classify(ident_input1, ident_input2)
-            new_loss = nn.CrossEntropyLoss()(ident_outputs, ident_labels.to(ident_outputs.device))
-            loss += args.identification_loss_weight * new_loss
-            if debug:
-                logger.info(f"Paraphrase Identiciation loss = {new_loss}")
-        if loss == 0:
-            raise ValueError("one of *loss_weights should be > 0.")
+                logger.info(f"Contrastive loss = {new_loss}")
         
         if debug:
             logger.info(f"=> Total loss = {loss}")
@@ -132,17 +112,16 @@ def main(args):
         logger.info(f"< epoch {epoch} >")
         # Train phase
         model.train()
-        epoch_size = min(len(train_gen_loader), len(train_ident_loader)) # For QQP dataset, epoch_size = len(train_gen_loader)
-        for i, (gen_data, ident_data) in enumerate(tqdm(zip(train_gen_loader, train_ident_loader), total=epoch_size)):
+        epoch_size = len(train_gen_loader)
+        for i, gen_data in enumerate(tqdm(train_gen_loader, total=epoch_size)):
             # get the inputs; data is a list of [inputs, labels]
             gen_inputs, gen_outputs = gen_data
-            ident_input1, ident_input2, ident_labels = ident_data
 
             # zero the parameter gradients
             optimizer.zero_grad()
 
             # forward + backward + optimize
-            loss = criteria(gen_inputs, gen_outputs, ident_input1, ident_input2, ident_labels)
+            loss = criteria(gen_inputs, gen_outputs)
             loss.backward()
             optimizer.step()
 
@@ -153,16 +132,15 @@ def main(args):
                     total = len(dev_data)
                     dev_loss = 0
                     first_batch=True
-                    for gen_data, ident_data in zip(dev_gen_loader, dev_ident_loader):
+                    for gen_data in dev_gen_loader:
                         gen_inputs, gen_outputs = gen_data
-                        ident_input1, ident_input2, ident_labels = ident_data
                         if first_batch:
                             test_input = gen_inputs[0]
                             test_outputs = model.generate([test_input])[0]
-                            dev_loss += (criteria(gen_inputs, gen_outputs, ident_input1, ident_input2, ident_labels, debug=True)).item() * args.batch_size
+                            dev_loss += (criteria(gen_inputs, gen_outputs)).item() * args.batch_size
                             first_batch=False
                         else:
-                            dev_loss += (criteria(gen_inputs, gen_outputs, ident_input1, ident_input2, ident_labels)).item() * args.batch_size
+                            dev_loss += (criteria(gen_inputs, gen_outputs)).item() * args.batch_size
                 logger.info("=================================================")
                 logger.info(f"epoch {epoch}, step {i}")
                 logger.info(f"dev loss = {dev_loss/total}")
@@ -195,9 +173,8 @@ if __name__ == "__main__":
     # Dataset
     parser.add_argument("--train_gen_data", required=True)
     parser.add_argument("--dev_gen_data", required=True)
-    parser.add_argument("--train_ident_data", required=True)
-    parser.add_argument("--dev_ident_data", required=True)
 
+    parser.add_argument("--fine_tune", required=False, action="store_true")
     parser.add_argument("--from_checkpoint", required=False, default=None)
 
     # Hyperparameters
@@ -206,16 +183,9 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=5e-5)
     parser.add_argument("--epoch", type=int, default=5)
     parser.add_argument("--num_beams", type=int, default=12)
-    parser.add_argument("--generation_loss_weight", type=float, default=1.0)
-    parser.add_argument("--identification_loss_weight", type=float, default=0.0)
-    parser.add_argument("--bc_classification_loss_weight", type=float, default=0.0)
-    parser.add_argument("--bc_distance_loss_weight", type=float, default=0.0)
-    parser.add_argument("--bc_ordering_loss_weight", type=float, default=0.0)
-    parser.add_argument("--num_beam_groups", type=int, default=4)
-    parser.add_argument("--from_batch_neg_examples", type=int, default=5)
+    parser.add_argument("--num_beam_groups", type=int, default=12)
     parser.add_argument("--diversity_penalty", type=float, default=0.9)
-    parser.add_argument("--difference_hinge_lambda", type=float, default=0.7)
-    parser.add_argument("--ordering_hinge_lambda", type=float, default=0.01)
+    parser.add_argument("--contrast_lambda", type=float, default=0.2)
     parser.add_argument("--log_interval", type=int, default=1000)
     parser.add_argument("--early_stop", type=int, default=4)
 
@@ -223,7 +193,7 @@ if __name__ == "__main__":
     parser.add_argument("--model_store_path", required=True)
     parser.add_argument("--model_postfix", required=True)
     parser.add_argument("--maintain_best_chkpt_only", default=False)
-    parser.add_argument("--secure", default=False)
+    parser.add_argument("--secure", required=False, action="store_true")
 
     args = parser.parse_args()
     main(args)
