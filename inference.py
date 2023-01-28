@@ -56,9 +56,7 @@ def main(args):
     model = Paraphraser(
         bart,
         bart_tokenizer,
-        num_beams=args.num_beams,
-        num_beam_groups=args.num_beam_groups,
-        diversity_penalty=args.diversity_penalty
+        num_beams=args.num_beams
     )
     model.load_state_dict(torch.load(model_store_path))
     model.device = device
@@ -88,7 +86,7 @@ def main(args):
 
         if first_batch:
             test_input = inputs[0]
-            test_outputs = outputs[0]
+            test_outputs = outputs
             first_batch = False
     
     result_store_path = os.path.join(args.model_store_path, args.model_postfix, "result.json")
@@ -108,17 +106,15 @@ def main(args):
 if __name__ == "__main__":
     parser = ArgumentParser()
     # Dataset
-    parser.add_argument("--test_data", required=True)
+    parser.add_argument("--test_data", required=True, help="Test set(JSON file)")
 
     # Hyperparameters
-    parser.add_argument("--batch_size", type=int, default=24)
-    parser.add_argument("--num_beams", type=int, default=12)
-    parser.add_argument("--num_beam_groups", type=int, default=24)
-    parser.add_argument("--diversity_penalty", type=float, default=0.5)
+    parser.add_argument("--batch_size", type=int, default=32, help="testing batch size")
+    parser.add_argument("--num_beams", type=int, default=12, help="number of beams(generated sequences) per inference")
 
     # Checkpoint configs
-    parser.add_argument("--model_store_path", required=True)
-    parser.add_argument("--model_postfix", required=True)
+    parser.add_argument("--model_store_path", required=False, default='checkpoints', help="Directory to store model checkpoints.")
+    parser.add_argument("--model_postfix", required=True, help="Name for the model.")
 
     args = parser.parse_args()
     main(args)

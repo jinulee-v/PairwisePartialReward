@@ -15,17 +15,10 @@ model_id = "facebook/bart-base"
 
 
 def main(args):
-    # For simplicity, if a directory is given, load the last checkpoint(last name in alphabetical order)
-    if args.model_store_path.endswith(".pt"):
-        model_store_path = args.model_store_path
-    else:
-        assert os.path.isdir(args.model_store_path)
-        log_path = model_store_path = os.path.join(args.model_store_path, args.model_postfix)
-        assert os.path.isdir(model_store_path)
-        last_checkpoint = sorted([f for f in os.listdir(model_store_path) if f.endswith(".pt")], reverse=True)[0]
-        model_store_path = os.path.join(args.model_store_path, args.model_postfix, last_checkpoint)
-
     # Init logger
+    assert os.path.isdir(args.model_store_path)
+    log_path = os.path.join(args.model_store_path, args.model_postfix)
+
     formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
     stdout_handler = logging.StreamHandler(sys.stdout)
     stdout_handler.setFormatter(formatter)
@@ -53,13 +46,18 @@ def main(args):
         reference.append(r["input"])
         outputs.append(r["paraphrases"])
         
-    # *_scores = List_float[model.num_beam_groups]
+    # Obtain scores
     pibleu, para, bleu = get_pibleu_score(
         target_inp=reference,
         samples_all=outputs,
         tokenizer=AutoTokenizer.from_pretrained(model_id),
         eval=True
     )
+
+    # How frequently does the model copy the input?
+    first_beam = [beam[0] for beam in outputs]
+    first_beam_eq_input = sum([(1 if x==y else 0) for x, y in zip(inputs, outputs)])
+    first_beam_eq_ratio = first_beam_eq_input / len(inputs) * 100
 
     logger.info("=================================================")
     logger.info("Analysis result")
@@ -70,7 +68,8 @@ def main(args):
     for beam_id, score in enumerate(torch.mean(para, dim=0).tolist()):
         logger.info(f"    beam {beam_id + 1}: {score}")
 
-    logger.info("\nPiBLEU score")
+    logger.info("")
+    logger.info("PiBLEU score")
     logger.info(f"Total average: {torch.mean(pibleu)}")
     logger.info(f"PiBLEU score per beam:")
     for beam_id, score in enumerate(torch.mean(pibleu, dim=0).tolist()):
@@ -79,6 +78,11 @@ def main(args):
     logger.info(f"PiBLEU score per beam(sorted):")
     for beam_id, score in enumerate(torch.mean(pibleu_sorted, dim=0).tolist()):
         logger.info(f"    beam {beam_id + 1}: {score}")
+    
+    logger.info("")
+    logger.info("Repeated original sentence")
+    logger.info("  (in the first beam of model output)")
+    logger.info(f"{first_beam_eq_input} / {len(inputs)} ({first_beam_eq_ratio} %)")
 
     logger.info("=================================================")
 
@@ -86,7 +90,7 @@ if __name__ == "__main__":
     parser = ArgumentParser()
 
     # Checkpoint configs
-    parser.add_argument("--model_store_path", required=True)
+    parser.add_argument("--model_store_path", required=False, default='checkpoints', help="Directory to store model checkpoints.")
     parser.add_argument("--model_postfix", required=True)
 
     args = parser.parse_args()

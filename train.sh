@@ -1,17 +1,27 @@
-# python train_qqp.py \
-#     --train_gen_data data/qqp_paragen_train.json \
-#     --dev_gen_data data/qqp_paragen_dev.json \
-#     --model_store_path checkpoints \
-#     --epoch 10 \
-#     --torch_seed 0 \
-#     --model_postfix qqp_Gen
-
-python train_qqp.py \
+python train.py \
     --train_gen_data data/qqp_paragen_train.json \
     --dev_gen_data data/qqp_paragen_dev.json \
-    --model_store_path checkpoints \
-    --epoch 10 \
-    --torch_seed 0 \
-    --fine_tune \
-    --from_checkpoint qqp_Gen \
-    --model_postfix qqp_Contrastive
+    --model_postfix bart_qqp_1gen \
+    --generative
+
+python train.py \
+    --train_gen_data data/qqp_paragen_train.json \
+    --dev_gen_data data/qqp_paragen_dev.json \
+    --model_postfix bart_qqp_1gen_2gen+triecl \
+    --from_checkpoint bart_qqp_1gen \
+    --generative --contrastive \
+    --log_interval 500
+
+python train.py \
+    --train_gen_data data/qqp_paragen_train.json \
+    --dev_gen_data data/qqp_paragen_dev.json \
+    --model_postfix bart_qqp_1gen+triecl \
+    --generative --contrastive
+
+python train.py \
+    --train_gen_data data/qqp_paragen_train.json \
+    --dev_gen_data data/qqp_paragen_dev.json \
+    --model_postfix bart_qqp_1gen_2triecl \
+    --from_checkpoint bart_qqp_1gen \
+    --contrastive \
+    --log_interval 500

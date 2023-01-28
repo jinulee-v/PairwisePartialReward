@@ -11,18 +11,26 @@ from torch.utils.data import Dataset, DataLoader
 from torch.optim import Adam
 
 from datasets import load_dataset
-from transformers import BartForConditionalGeneration, AutoTokenizer
+from transformers import BartForConditionalGeneration, T5ForConditionalGeneration, AutoTokenizer
 
 from model.model import Paraphraser
 from model.dataset import *
 
-model_id = "facebook/bart-base"
 
+MODEL_ID = {
+    'bart': 'facebook/bart-base',
+    't5': 't5-small',
+}
+MODEL_CLASS = {
+    'bart': BartForConditionalGeneration,
+    't5': T5ForConditionalGeneration,
+}
 
 def main(args):
     torch.manual_seed(args.torch_seed)
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cpu")
 
     # Make checkpoint/log directory
     model_store_path = os.path.join(args.model_store_path, args.model_postfix)
@@ -52,29 +60,26 @@ def main(args):
     logger.info("")
 
     # Load model
-    bart_model = BartForConditionalGeneration.from_pretrained(model_id)
-    bart_tokenizer = AutoTokenizer.from_pretrained(model_id)
+    model_id = MODEL_ID[args.base_model]
+    model_class = MODEL_CLASS[args.base_model]
+    base_model = model_class.from_pretrained(model_id)
+    base_tokenizer = AutoTokenizer.from_pretrained(model_id)
     model = Paraphraser(
-        bart_model,
-        bart_tokenizer,
+        base_model,
+        base_tokenizer,
         num_beams=args.num_beams,
-        num_beam_groups=args.num_beam_groups,
-        diversity_penalty=args.diversity_penalty,
         contrast_lambda=args.contrast_lambda,
         device=device
     ).to(device)
-    if args.fine_tune:
-        if args.from_checkpoint is not None:
-            assert os.path.isdir(args.model_store_path)
-            model_load_path = os.path.join(args.model_store_path, args.from_checkpoint)
-            assert os.path.isdir(model_load_path)
-            last_checkpoint = sorted([f for f in os.listdir(model_load_path) if f.endswith(".pt")], reverse=True)[0]
-            model_load_path = os.path.join(model_load_path, last_checkpoint)
-            model.load_state_dict(torch.load(model_load_path))
-            model.device = device
-            model = model.to(device)
-        else:
-            raise ValueError("To use `fine_tune` arg, `from_checkpoint` must be specified.")
+    if args.from_checkpoint is not None:
+        assert os.path.isdir(args.model_store_path)
+        model_load_path = os.path.join(args.model_store_path, args.from_checkpoint)
+        assert os.path.isdir(model_load_path)
+        last_checkpoint = sorted([f for f in os.listdir(model_load_path) if f.endswith(".pt")], reverse=True)[0]
+        model_load_path = os.path.join(model_load_path, last_checkpoint)
+        model.load_state_dict(torch.load(model_load_path))
+        model.device = device
+        model = model.to(device)
 
     # Load data
     with open(args.train_gen_data, "r", encoding='UTF-8') as file:
@@ -87,15 +92,18 @@ def main(args):
     dev_gen_loader = DataLoader(dev_gen_dataset, shuffle=False, batch_size=args.batch_size, collate_fn=pg_collate_fn)
 
     # Define criteria and optimizer
-    def criteria(gen_inputs, gen_outputs, debug=True):
+    def criteria(gen_inputs, gen_outputs, debug=False):
         # NLL loss from the decoder head
-        loss = model.get_generation_loss(gen_inputs, gen_outputs)
-        if debug:
-            logger.info(f"NLL loss = {loss}")
+        loss = 0
+        if args.generative:
+            new_loss = model.get_generation_loss(gen_inputs, gen_outputs)
+            loss += new_loss
+            if debug:
+                logger.info(f"NLL loss = {new_loss}")
 
         # Contrast learning in fine-tune state
-        if args.fine_tune:
-            new_loss= model.get_contrastive_loss(gen_inputs)
+        if args.contrastive:
+            new_loss= model.get_contrastive_loss(gen_inputs, gen_outputs)
             loss += new_loss
             if debug:
                 logger.info(f"Contrastive loss = {new_loss}")
@@ -157,7 +165,7 @@ def main(args):
                     if args.maintain_best_chkpt_only:
                         os.remove(os.path.join(model_store_path, name))
                     logger.info("Save model checkpoint because reduced loss...")
-                    name = f"ParaConfee_{args.model_postfix}_epoch_{epoch}_step_{i+1}.pt"
+                    name = f"Model_{args.model_postfix}_epoch_{epoch}_step_{i+1}.pt"
                     torch.save(model.state_dict(), os.path.join(model_store_path, name))
                     early_stop_count = 0
                 else:
@@ -171,29 +179,33 @@ def main(args):
 if __name__ == "__main__":
     parser = ArgumentParser()
     # Dataset
-    parser.add_argument("--train_gen_data", required=True)
-    parser.add_argument("--dev_gen_data", required=True)
+    parser.add_argument("--train_gen_data", required=True, help="Training set(JSON file)")
+    parser.add_argument("--dev_gen_data", required=True, help="Validation set(JSON file)")
 
-    parser.add_argument("--fine_tune", required=False, action="store_true")
-    parser.add_argument("--from_checkpoint", required=False, default=None)
+    parser.add_argument("--generative", required=False, action="store_true", help="Use Generative NLL loss for training.")
+    parser.add_argument("--contrastive", required=False, action="store_true", help="Use TrieCL contrastive loss for training.")
+
+    parser.add_argument("--from_checkpoint", required=False, default=None, help="Pretrained checkpoint to load and resume training.")
+    parser.add_argument("--base_model", required=False, default="bart", choices=["bart", "t5"], help="Base model to train. If using `from_checkpoint`, you do not need to specify this option.")
 
     # Hyperparameters
-    parser.add_argument("--torch_seed", type=int, default=0)
-    parser.add_argument("--batch_size", type=int, default=16)
-    parser.add_argument("--lr", type=float, default=5e-5)
-    parser.add_argument("--epoch", type=int, default=5)
-    parser.add_argument("--num_beams", type=int, default=12)
-    parser.add_argument("--num_beam_groups", type=int, default=12)
-    parser.add_argument("--diversity_penalty", type=float, default=0.9)
-    parser.add_argument("--contrast_lambda", type=float, default=0.2)
-    parser.add_argument("--log_interval", type=int, default=1000)
-    parser.add_argument("--early_stop", type=int, default=4)
+    parser.add_argument("--torch_seed", type=int, default=0, help="torch_seed() value")
+    parser.add_argument("--batch_size", type=int, default=16, help="training batch size")
+    parser.add_argument("--lr", type=float, default=5e-5, help="Learning rate(default: Adam optimizer)")
+    parser.add_argument("--epoch", type=int, default=5, help="epoch count")
+    parser.add_argument("--num_beams", type=int, default=12, help="number of beams(generated sequences) per inference")
+    parser.add_argument("--contrast_lambda", type=float, default=0.5, help="Contrast hinge value for TrieCL")
+    parser.add_argument("--log_interval", type=int, default=1000, help="validating / checkpoint saving interval. Validates at the end of each epoch for default.")
+    parser.add_argument("--early_stop", type=int, default=4, help="if valid loss does not decrease for `early_stop` validations, stop training.")
 
     # Checkpoint configs
-    parser.add_argument("--model_store_path", required=True)
-    parser.add_argument("--model_postfix", required=True)
-    parser.add_argument("--maintain_best_chkpt_only", default=False)
-    parser.add_argument("--secure", required=False, action="store_true")
+    parser.add_argument("--model_store_path", required=False, default='checkpoints', help="Directory to store model checkpoints.")
+    parser.add_argument("--model_postfix", required=True, help="Name for the model.")
+    parser.add_argument("--maintain_best_chkpt_only", default=False, action="store_true", help="If true, remove all checkpoints except the best validation loss. If false, store every best checkpoints")
+    parser.add_argument("--secure", required=False, action="store_true", help="")
 
     args = parser.parse_args()
+
+    assert args.generative or args.contrastive
+
     main(args)
