@@ -70,15 +70,16 @@ class Paraphraser(nn.Module):
 
         @return loss
         """
+        torch.cuda.empty_cache()
         assert len(inputs) == len(outputs)
         batch_size = len(inputs)
 
         # Tokenize
-        input_ids = self.tokenizer(inputs)["input_ids"]
+        input_ids = self.tokenizer(inputs, truncation=True)["input_ids"]
         input_ids = [torch.tensor(idx) for idx in input_ids]
         input_ids = pad_sequence(input_ids, batch_first=True, padding_value=self.pad_id).to(self.device)
         attention_mask = input_ids != self.pad_id
-        decoder_input_ids = self.tokenizer(outputs)["input_ids"]
+        decoder_input_ids = self.tokenizer(outputs, truncation=True)["input_ids"]
         decoder_input_ids = [torch.tensor(idx) for idx in decoder_input_ids]
         decoder_input_ids = pad_sequence(decoder_input_ids, batch_first=True, padding_value=self.pad_id).to(self.device)
         # decoder_attention_mask = decoder_input_ids != self.pad_id
@@ -140,9 +141,9 @@ class Paraphraser(nn.Module):
         batch_size = len(inputs)
 
         # Tokenize
-        input_ids = self.tokenizer(inputs)["input_ids"]
-        input_ids = [torch.tensor(idx) for idx in input_ids]
-        input_ids = pad_sequence(input_ids, batch_first=True, padding_value=self.pad_id).to(self.device)
+        input_ids = self.tokenizer(inputs, truncation=True)["input_ids"]
+        input_ids = [torch.tensor(idx, device=self.device) for idx in input_ids]
+        input_ids = pad_sequence(input_ids, batch_first=True, padding_value=self.pad_id)
         attention_mask = input_ids != self.pad_id
 
         with torch.no_grad():
@@ -159,12 +160,12 @@ class Paraphraser(nn.Module):
 
             # Rank the outputs
             pibleu_score = get_pibleu_score(input_ids, sequences, self.tokenizer) # batch_size * (batch_size+1)
-            ranks = torch.argsort(pibleu_score, dim=1).tolist()
+            ranks = torch.argsort(pibleu_score, dim=1).to(torch.device('cpu'), non_blocking=True).tolist()
 
             # Extract common prefixes out of the prefix tree
-            decoder_prefix, first_diff_tok_idx = self.get_prefix(sequences.tolist(), ranks)
-            decoder_prefix = decoder_prefix.to(self.device)
-            first_diff_tok_idx = first_diff_tok_idx.to(self.device)
+            decoder_prefix, first_diff_tok_idx = self.get_prefix(sequences.to(torch.device('cpu'), non_blocking=True).tolist(), ranks)
+            decoder_prefix = decoder_prefix.to(self.device, non_blocking=True)
+            first_diff_tok_idx = first_diff_tok_idx.to(self.device, non_blocking=True)
                 
             # Get boundaries and decoder_mask to obtain the shared prefix
             decoder_mask = (decoder_prefix != self.tokenizer.pad_token_id).long()
@@ -196,7 +197,7 @@ class Paraphraser(nn.Module):
         batch_size = len(inputs)
 
         # Tokenize
-        input_ids = self.tokenizer(inputs)["input_ids"]
+        input_ids = self.tokenizer(inputs, truncation=True)["input_ids"]
         input_ids = [torch.tensor(idx) for idx in input_ids]
         input_ids = pad_sequence(input_ids, batch_first=True, padding_value=self.pad_id).to(self.device)
 

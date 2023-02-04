@@ -56,8 +56,9 @@ def main(args):
 
     # How frequently does the model copy the input?
     first_beam = [beam[0] for beam in outputs]
-    first_beam_eq_input = sum([(1 if x==y else 0) for x, y in zip(inputs, outputs)])
-    first_beam_eq_ratio = first_beam_eq_input / len(inputs) * 100
+    print(first_beam[:10], reference[:10])
+    first_beam_eq_input = sum([(1 if x==y else 0) for x, y in zip(reference, first_beam)])
+    first_beam_eq_ratio = first_beam_eq_input / len(reference) * 100
 
     logger.info("=================================================")
     logger.info("Analysis result")
@@ -82,7 +83,7 @@ def main(args):
     logger.info("")
     logger.info("Repeated original sentence")
     logger.info("  (in the first beam of model output)")
-    logger.info(f"{first_beam_eq_input} / {len(inputs)} ({first_beam_eq_ratio} %)")
+    logger.info(f"{first_beam_eq_input} / {len(reference)} ({first_beam_eq_ratio} %)")
 
     logger.info("=================================================")
 
