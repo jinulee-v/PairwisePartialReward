@@ -69,6 +69,8 @@ def main(args):
         base_tokenizer,
         num_beams=args.num_beams,
         contrast_lambda=args.contrast_lambda,
+        len_penalty=args.len_penalty,
+        mix_rate=args.mix_rate,
         device=device
     ).to(device)
     if args.from_checkpoint is not None:
@@ -194,7 +196,9 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=5e-5, help="Learning rate(default: Adam optimizer)")
     parser.add_argument("--epoch", type=int, default=5, help="epoch count")
     parser.add_argument("--num_beams", type=int, default=12, help="number of beams(generated sequences) per inference")
-    parser.add_argument("--contrast_lambda", type=float, default=0.5, help="Contrast hinge value for TrieCL")
+    parser.add_argument("--contrast_lambda", type=float, default=0.001, help="Contrast hinge value for BRIO")
+    parser.add_argument("--len_penalty", type=float, default=1, help="Length penalty for BRIO")
+    parser.add_argument("--mix_rate", type=float, default=1, help="(MLE:Contrast=1:mix_rate) mix rate for BRIO")
     parser.add_argument("--log_interval", type=int, default=1000, help="validating / checkpoint saving interval. Validates at the end of each epoch for default.")
     parser.add_argument("--early_stop", type=int, default=4, help="if valid loss does not decrease for `early_stop` validations, stop training.")
 
