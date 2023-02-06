@@ -30,7 +30,7 @@ def main(args):
         last_checkpoint = sorted([f for f in os.listdir(model_store_path) if f.endswith(".pt")], reverse=True)[0]
         model_store_path = os.path.join(args.model_store_path, args.model_postfix, last_checkpoint)
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
     # Init logger
     formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')

@@ -11,7 +11,7 @@ from nltk.translate.bleu_score import sentence_bleu
 
 batch_size=32
 
-device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
+device = torch.device("cuda:1") if torch.cuda.is_available() else torch.device("cpu")
 # hg_model_hub_name = "textattack/bert-base-uncased-QQP"
 hg_model_hub_name = "domenicrosati/deberta-v3-large-finetuned-paws-paraphrase-detector"
 pi_tokenizer = AutoTokenizer.from_pretrained(hg_model_hub_name)
