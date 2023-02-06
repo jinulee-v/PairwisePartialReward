@@ -86,18 +86,19 @@ class Paraphraser(nn.Module):
         input_ids = pad_sequence(input_ids, batch_first=True, padding_value=self.pad_id)
         attention_mask = input_ids != self.pad_id
 
+        # Generate in beam sequences(beam size = batch size)
+        output = self.base.generate(
+            input_ids,
+            num_beams=batch_size,
+            # Output control
+            num_return_sequences=batch_size,
+            return_dict_in_generate=True,
+            output_scores=True,
+        )
+
+        # Rank beams
         with torch.no_grad():
-            # Generate in beam sequences(beam size = batch size)
-            output = self.base.generate(
-                input_ids,
-                num_beams=batch_size,
-                # Output control
-                num_return_sequences=batch_size,
-                return_dict_in_generate=True,
-                output_scores=True,
-            )
             sequences = output.sequences.reshape(batch_size, batch_size, -1)[:, :, 1:]
-            decoder_mask = sequences != self.pad_id
 
             # Rank the outputs
             pibleu_score = get_pibleu_score(input_ids, sequences, self.tokenizer) # batch_size * (batch_size)
@@ -108,26 +109,8 @@ class Paraphraser(nn.Module):
             rank_diff_matrix *= self.contrast_lambda
             rank_diff_mask = (rank_diff_matrix != 0).to(torch.float32)
 
-        # Compare beams according to their rank
-        # we compute single input and its output beams one by one(that's why we set beam_size to batch_size)
-        contrast_loss = 0
-        logits = []
-
-        # Retrieve logits and take log-softmax
-        for i in range(batch_size):
-            logits.append(self.base(
-                    input_ids=torch.tile(input_ids[i].unsqueeze(0), (batch_size, 1)),
-                    attention_mask=torch.tile(attention_mask[i].unsqueeze(0), (batch_size, 1)),
-                    decoder_input_ids=sequences[i],
-                    decoder_attention_mask=decoder_mask[i]
-                ).logits.unsqueeze(0) # 1 * batch_size * seq_len * vocab_size
-            )
-        logits = torch.cat(logits, dim=0) # batch_size * batch_size * seq_len * vocab_size
-
         # Calculate NLL losses and length penalty
-        losses = - loss_fct(logits.reshape(-1, logits.size(3)), sequences.reshape(-1))
-        losses = losses.reshape(logits.size(0), logits.size(1), logits.size(2)) * decoder_mask # batch_size * batch_size * seq_len
-        losses = torch.sum(losses, dim=-1) / torch.pow(torch.sum(decoder_mask, dim=2) - 1, self.len_penalty)
+        losses = -output.sequences_scores.reshape(batch_size, -1)
         
         # calculate pairwise loss
         loss_diff_matrix = losses.unsqueeze(1) - losses.unsqueeze(2)
