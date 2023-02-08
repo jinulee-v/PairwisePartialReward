@@ -91,9 +91,11 @@ class Paraphraser(nn.Module):
             input_ids,
             num_beams=batch_size,
             # Output control
+            max_new_tokens=int(input_ids.size(1) * 1.5),
             num_return_sequences=batch_size,
             return_dict_in_generate=True,
             output_scores=True,
+            early_stopping=True
         )
 
         # Rank beams
@@ -107,13 +109,13 @@ class Paraphraser(nn.Module):
             # Generate sequence pair differences
             rank_diff_matrix = F.relu(ranks.unsqueeze(2) - ranks.unsqueeze(1)) # batch_size * (batch_size)  * (batch_size)
             rank_diff_matrix *= self.contrast_lambda
-            rank_diff_mask = (rank_diff_matrix != 0).to(torch.float32)
+            rank_diff_mask = (rank_diff_matrix < 0).to(torch.float32)
 
         # Calculate NLL losses and length penalty
-        losses = -output.sequences_scores.reshape(batch_size, -1)
+        losses = output.sequences_scores.reshape(batch_size, -1)
         
         # calculate pairwise loss
-        loss_diff_matrix = losses.unsqueeze(1) - losses.unsqueeze(2)
+        loss_diff_matrix = losses.unsqueeze(2) - losses.unsqueeze(1)
         loss_terms = torch.max(torch.zeros_like(loss_diff_matrix), rank_diff_matrix - loss_diff_matrix)
         loss_terms *= rank_diff_mask
         contrast_loss = torch.sum(loss_terms) / torch.sum(rank_diff_mask)
@@ -138,6 +140,7 @@ class Paraphraser(nn.Module):
             num_return_sequences=self.num_beams,
             return_dict_in_generate=True,
             output_scores=True,
+            early_stopping=True
         )
         # Convert ids to tokens
         output = self.tokenizer.batch_decode(output.sequences, skip_special_tokens=skip_special_tokens)
