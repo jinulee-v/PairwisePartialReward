@@ -5,12 +5,9 @@ import os, sys
 import logging
 
 import torch
-import torch.nn as nn
-from torch.nn.utils.rnn import pad_sequence
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 from torch.optim import Adam
 
-from datasets import load_dataset
 from transformers import BartForConditionalGeneration, T5ForConditionalGeneration, AutoTokenizer
 
 # from model.model import Paraphraser -> Paraphraser is imported based on args.loss_fn
@@ -33,7 +30,7 @@ def main(args):
 
     # Set device
     device = torch.device(f"cuda:{args.gpu}" if torch.cuda.is_available() else "cpu")
-    set_gpu(args.device) # Set GPU for PiBLEU script evaluation
+    set_gpu(args.gpu) # Set GPU for PiBLEU script evaluation
 
     # Make checkpoint/log directory
     model_store_path = os.path.join(args.model_store_path, args.model_postfix)
@@ -41,7 +38,7 @@ def main(args):
         os.mkdir(model_store_path)
     except FileExistsError:
         if args.secure:
-            prompt = input("WARNING: overwriting directory " + model_store_path + ". Continnue? (y/n)")
+            prompt = input("WARNING: overwriting directory " + model_store_path + ". Continue? (y/n)")
             if prompt != "y":
                 exit()
 
@@ -49,6 +46,10 @@ def main(args):
     formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
     stdout_handler = logging.StreamHandler(sys.stdout)
     stdout_handler.setFormatter(formatter)
+    if not args.secure:
+        # Remove original log file
+        if os.path.exists(os.path.join(model_store_path, "train.log")):
+            os.remove(os.path.join(model_store_path, "train.log"))
     file_handler = logging.FileHandler(os.path.join(model_store_path, "train.log"))
     file_handler.setFormatter(formatter)
     logger = logging.getLogger('')
@@ -74,8 +75,7 @@ def main(args):
     elif args.loss_fn == "brio":
         from model.model_brio import Paraphraser
     elif args.loss_fn == "mrt":
-        pass
-        # from model.model_mrt import Paraphraser
+        from model.model_mrt import Paraphraser
     else:
         raise ValueError("loss_fn should be in: 'triecl', 'brio', 'mrt'")
     model = Paraphraser(
@@ -84,6 +84,7 @@ def main(args):
         num_beams=args.num_beams,
         contrast_lambda=args.contrast_lambda,
         len_penalty=args.len_penalty,
+        sample_size=args.sample_size,
         device=device
     ).to(device)
     if args.from_checkpoint is not None:
@@ -216,6 +217,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_beams", type=int, default=16, help="number of beams(generated sequences) per inference/contrastive learning")
     parser.add_argument("--contrast_lambda", type=float, default=float('inf'), help="Contrast hinge value (default: triecl==0.5, brio==0.01)")
     parser.add_argument("--len_penalty", type=float, default=1, help="Length penalty (default: brio==1)")
+    parser.add_argument("--sample_size", type=int, default=50, help="Sampling size for distribution estimiation (default: mrt==50)")
     parser.add_argument("--mix_rate", type=float, default=1, help="(MLE:Loss=1:mix_rate) mix rate (default: 1)")
 
     parser.add_argument("--log_interval", type=int, default=1000, help="validating / checkpoint saving interval. Validates at the end of each epoch for default.")
@@ -232,12 +234,16 @@ if __name__ == "__main__":
     parser.add_argument("--secure", required=False, action="store_true", help="")
 
     args = parser.parse_args()
+
+    # Post-modification of args
+
     # Set contrast_lambda according to loss_fn
     if args.loss_fn == "triecl":
         args.contrast_lambda = 0.5
     elif args.loss_fn == "brio":
         args.contrast_lambda = 0.01
 
+    # Assure at least one of two is on:
     assert args.generative or args.contrastive
 
     main(args)

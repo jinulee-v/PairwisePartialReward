@@ -11,14 +11,15 @@ from torch.utils.data import DataLoader
 
 from transformers import BartForConditionalGeneration, AutoTokenizer
 
-from model.model import Paraphraser
+from model.model import ParaphraserBase as Paraphraser
 from model.dataset import ParaphraseGenerationEvalDataset, pg_collate_fn
 
 model_id = "facebook/bart-base"
 
 
 def main(args):
-    torch.manual_seed(0)
+    # Set torch
+    torch.manual_seed(args.torch_seed)
 
     # For simplicity, if a directory is given, load the last checkpoint(last name in alphabetical order)
     if args.model_store_path.endswith(".pt"):
@@ -30,12 +31,17 @@ def main(args):
         last_checkpoint = sorted([f for f in os.listdir(model_store_path) if f.endswith(".pt")], reverse=True)[0]
         model_store_path = os.path.join(args.model_store_path, args.model_postfix, last_checkpoint)
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # Set device
+    device = torch.device(f"cuda:{args.gpu}" if torch.cuda.is_available() else "cpu")
 
     # Init logger
     formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
     stdout_handler = logging.StreamHandler(sys.stdout)
     stdout_handler.setFormatter(formatter)
+    if not args.secure:
+        # Remove original log file
+        if os.path.exists(os.path.join(model_store_path, "inference.log")):
+            os.remove(os.path.join(model_store_path, "inference.log"))
     file_handler = logging.FileHandler(os.path.join(log_path, "inference.log"))
     file_handler.setFormatter(formatter)
     logger = logging.getLogger('')
@@ -109,12 +115,15 @@ if __name__ == "__main__":
     parser.add_argument("--test_data", required=True, help="Test set(JSON file)")
 
     # Hyperparameters
-    parser.add_argument("--batch_size", type=int, default=32, help="testing batch size")
-    parser.add_argument("--num_beams", type=int, default=12, help="number of beams(generated sequences) per inference")
+    parser.add_argument("--batch_size", type=int, default=16, help="testing batch size")
+    parser.add_argument("--num_beams", type=int, default=16, help="number of beams(generated sequences) per inference")
 
     # Checkpoint configs
     parser.add_argument("--model_store_path", required=False, default='checkpoints', help="Directory to store model checkpoints.")
     parser.add_argument("--model_postfix", required=True, help="Name for the model.")
+
+    parser.add_argument("--gpu", type=int, default=0, help="CUDA index for training")
+    parser.add_argument("--secure", required=False, action="store_true", help="")
 
     args = parser.parse_args()
     main(args)

@@ -3,18 +3,20 @@ import json
 from tqdm import tqdm
 import os, sys
 import logging
-from tqdm import tqdm
 
 import torch
 
 from transformers import AutoTokenizer
 
-from model.pibleu import get_pibleu_score
+from model.pibleu import get_pibleu_score, set_gpu
 
 model_id = "facebook/bart-base"
 
 
 def main(args):
+    # Set device
+    set_gpu(args.gpu) # Set GPU for PiBLEU script evaluation
+
     # Init logger
     assert os.path.isdir(args.model_store_path)
     log_path = os.path.join(args.model_store_path, args.model_postfix)
@@ -22,6 +24,10 @@ def main(args):
     formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
     stdout_handler = logging.StreamHandler(sys.stdout)
     stdout_handler.setFormatter(formatter)
+    if not args.secure:
+        # Remove original log file
+        if os.path.exists(os.path.join(log_path, "eval.log")):
+            os.remove(os.path.join(log_path, "eval.log"))
     file_handler = logging.FileHandler(os.path.join(log_path, "eval.log"))
     file_handler.setFormatter(formatter)
     logger = logging.getLogger('')
@@ -93,6 +99,9 @@ if __name__ == "__main__":
     # Checkpoint configs
     parser.add_argument("--model_store_path", required=False, default='checkpoints', help="Directory to store model checkpoints.")
     parser.add_argument("--model_postfix", required=True)
+    
+    parser.add_argument("--gpu", type=int, default=0, help="CUDA index for training")
+    parser.add_argument("--secure", required=False, action="store_true", help="")
 
     args = parser.parse_args()
     main(args)
