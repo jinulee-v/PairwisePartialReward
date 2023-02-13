@@ -61,7 +61,7 @@ class Paraphraser(ParaphraserBase):
                 num_beams=self.num_beams,
                 # Output control
                 # max_new_tokens=int(input_ids.size(1)),
-                num_return_sequences=batch_size,
+                num_return_sequences=self.num_beams,
                 return_dict_in_generate=True,
                 output_scores=True,
                 early_stopping=True
