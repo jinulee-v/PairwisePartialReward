@@ -22,7 +22,6 @@ class Paraphraser(nn.Module):
             num_beams: int = None,
             contrast_lambda : float = None,
             len_penalty: float = None,
-            mix_rate: float = None,
             device: torch.device = torch.device("cpu")):
         super(Paraphraser, self).__init__()
 
@@ -31,7 +30,6 @@ class Paraphraser(nn.Module):
         self.tokenizer = tokenizer
         self.pad_id = self.base.config.pad_token_id
         self.len_penalty = len_penalty
-        self.mix_rate = mix_rate
 
         self.num_beams = num_beams
         self.contrast_lambda = contrast_lambda
@@ -90,7 +88,7 @@ class Paraphraser(nn.Module):
             # Generate in beam sequences(beam size = batch size)
             output = self.base.generate(
                 input_ids,
-                num_beams=batch_size,
+                num_beams=self.num_beams,
                 # Output control
                 # max_new_tokens=int(input_ids.size(1)),
                 num_return_sequences=batch_size,
@@ -98,15 +96,15 @@ class Paraphraser(nn.Module):
                 output_scores=True,
                 early_stopping=True
             )
-            sequences = output.sequences.reshape(batch_size, batch_size, -1)[:, :, 1:]
+            sequences = output.sequences.reshape(batch_size, self.num_beams, -1)[:, :, 1:]
             decoder_mask = sequences != self.pad_id
 
             # Rank the outputs
-            pibleu_score = get_pibleu_score(input_ids, sequences, self.tokenizer) # batch_size * (batch_size)
+            pibleu_score = get_pibleu_score(input_ids, sequences, self.tokenizer) # batch_size * num_beams
             ranks = torch.argsort(pibleu_score, dim=1).to(torch.float32)
 
             # Generate sequence pair differences
-            rank_diff_matrix = ranks.unsqueeze(2) - ranks.unsqueeze(1) # batch_size * (batch_size)  * (batch_size)
+            rank_diff_matrix = ranks.unsqueeze(2) - ranks.unsqueeze(1) # batch_size * num_beams * num_beams
             rank_diff_matrix *= self.contrast_lambda
             rank_diff_mask = (rank_diff_matrix > 0).to(torch.float32)
 
@@ -118,26 +116,25 @@ class Paraphraser(nn.Module):
         contrast_loss = 0
         for i in range(batch_size):
             logits = self.base(
-                    input_ids=torch.tile(input_ids[i].unsqueeze(0), (batch_size, 1)),
-                    attention_mask=torch.tile(attention_mask[i].unsqueeze(0), (batch_size, 1)),
+                    input_ids=torch.tile(input_ids[i].unsqueeze(0), (self.num_beams, 1)),
+                    attention_mask=torch.tile(attention_mask[i].unsqueeze(0), (self.num_beams, 1)),
                     decoder_input_ids=sequences[i],
                     decoder_attention_mask=decoder_mask[i]
-            ).logits # batch_size * seq_len * vocab_size
+            ).logits # num_beams * seq_len * vocab_size
 
             # Calculate NLL losses and length penalty
             losses = - loss_fct(logits.reshape(-1, logits.size(2)), sequences[i].reshape(-1))
-            losses = losses.reshape(logits.size(0), logits.size(1)) * decoder_mask[i] # batch_size * seq_len
+            losses = losses.reshape(logits.size(0), logits.size(1)) * decoder_mask[i] # num_beams * seq_len
             losses = torch.sum(losses, dim=-1) / torch.pow(torch.sum(decoder_mask[i], dim=1) - 1, self.len_penalty)
             
             # calculate pairwise loss
             loss_diff_matrix = losses.unsqueeze(1) - losses.unsqueeze(0)
             loss_terms = torch.max(torch.zeros_like(loss_diff_matrix), rank_diff_matrix[i] - loss_diff_matrix)
             loss_terms *= rank_diff_mask[i]
-            contrast_loss += torch.sum(loss_terms) / torch.sum(rank_diff_mask[i])
+            contrast_loss += torch.sum(loss_terms) / torch.sum(rank_diff_mask[i]) # Normalize by (seq1, seq2) combination count
         
-        return contrast_loss * self.mix_rate
+        return contrast_loss / batch_size # Normalize by batch size
 
-    
     def generate(self, inputs, skip_special_tokens=True):
         batch_size = len(inputs)
 

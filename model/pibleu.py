@@ -11,20 +11,20 @@ from nltk.translate.bleu_score import sentence_bleu
 
 batch_size=32
 
-device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
+device = torch.device("cpu")
 # hg_model_hub_name = "textattack/bert-base-uncased-QQP"
 hg_model_hub_name = "domenicrosati/deberta-v3-large-finetuned-paws-paraphrase-detector"
 pi_tokenizer = AutoTokenizer.from_pretrained(hg_model_hub_name)
-pi_model = AutoModelForSequenceClassification.from_pretrained(hg_model_hub_name).to(device)
+pi_model = AutoModelForSequenceClassification.from_pretrained(hg_model_hub_name)
 pad_id = pi_tokenizer.pad_token_id
 entail_label_id = 1
 
-def load_jsonl(path):
-    inst_list = []
-    with open(path) as f:
-        for line in f:
-            inst_list.append(json.loads(line))
-    return inst_list
+
+def set_gpu(gpu=0):
+    global device, pi_model
+    device = torch.device(f"cuda:{gpu}") if torch.cuda.is_available() else torch.device("cpu")
+    pi_model = pi_model.to(device)
+
 
 def get_para_score(s1, s2, device):
     global pi_model, pi_tokenizer
@@ -54,9 +54,9 @@ def get_para_score(s1, s2, device):
                 predicted_probability = torch.cat((predicted_probability, torch.softmax(outputs[0], dim=1)), dim=0)
     return predicted_probability
 
-def get_bleu_score(s1, s2):
-    scores = [sentence_bleu([x1.split()], x2.split(), weights=(0.25,0.25,0.25,0.25)) for x1, x2 in zip(s1, s2)]
-    return torch.tensor(scores)
+# def get_bleu_score(s1, s2):
+#     scores = [sentence_bleu([x1.split()], x2.split(), weights=(0.25,0.25,0.25,0.25)) for x1, x2 in zip(s1, s2)]
+#     return torch.tensor(scores)
 
 def form_ngram(input_tensor, n):
     """
@@ -182,6 +182,7 @@ def get_pibleu_score(target_inp, samples_all, tokenizer, eval=False):
     return (para_score * (1 - bleu_score))
 
 if __name__ == "__main__":
+    # Example for BLEU score calculation
     ref = torch.tensor([[1, 2, 3, 4, 5, 0, 0, 0]])
     sys = torch.tensor([[
         [1, 2, 3, 4, 5, 0, 0, 0, 0],
@@ -193,6 +194,7 @@ if __name__ == "__main__":
         print(n_gram, "- gram :", n_gram_precision(ref, sys, pad_id=0, n_gram=n_gram))
     print(torch_bleu(ref, sys, pad_id=0))
 
+    # Example for PiBLEU score calculation
     print(get_pibleu_score(
         ["Hello, nice to meet you."],
         [["Hello, nice to meet you.", "Hello, nice to see you.", "Greetings, it is good to see you."]],

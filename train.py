@@ -13,8 +13,9 @@ from torch.optim import Adam
 from datasets import load_dataset
 from transformers import BartForConditionalGeneration, T5ForConditionalGeneration, AutoTokenizer
 
-from model.model import Paraphraser
+# from model.model import Paraphraser -> Paraphraser is imported based on args.loss_fn
 from model.dataset import *
+from model.pibleu import set_gpu
 
 
 MODEL_ID = {
@@ -27,10 +28,12 @@ MODEL_CLASS = {
 }
 
 def main(args):
+    # Set torch
     torch.manual_seed(args.torch_seed)
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    # device = torch.device("cpu")
+    # Set device
+    device = torch.device(f"cuda:{args.gpu}" if torch.cuda.is_available() else "cpu")
+    set_gpu(args.device) # Set GPU for PiBLEU script evaluation
 
     # Make checkpoint/log directory
     model_store_path = os.path.join(args.model_store_path, args.model_postfix)
@@ -59,27 +62,38 @@ def main(args):
         logger.info("- %s: %r", arg, value)
     logger.info("")
 
-    # Load model
+    # Load base model(BART, T5, ...)
     model_id = MODEL_ID[args.base_model]
     model_class = MODEL_CLASS[args.base_model]
     base_model = model_class.from_pretrained(model_id)
     base_tokenizer = AutoTokenizer.from_pretrained(model_id)
+
+    # Load model
+    if args.loss_fn == "triecl":
+        from model.model_triecl import Paraphraser
+    elif args.loss_fn == "brio":
+        from model.model_brio import Paraphraser
+    elif args.loss_fn == "mrt":
+        pass
+        # from model.model_mrt import Paraphraser
+    else:
+        raise ValueError("loss_fn should be in: 'triecl', 'brio', 'mrt'")
     model = Paraphraser(
         base_model,
         base_tokenizer,
         num_beams=args.num_beams,
         contrast_lambda=args.contrast_lambda,
         len_penalty=args.len_penalty,
-        mix_rate=args.mix_rate,
         device=device
     ).to(device)
     if args.from_checkpoint is not None:
+        # Fine-tune from a local checkpoint
         assert os.path.isdir(args.model_store_path)
         model_load_path = os.path.join(args.model_store_path, args.from_checkpoint)
         assert os.path.isdir(model_load_path)
         last_checkpoint = sorted([f for f in os.listdir(model_load_path) if f.endswith(".pt")], reverse=True)[0]
         model_load_path = os.path.join(model_load_path, last_checkpoint)
-        model.load_state_dict(torch.load(model_load_path))
+        model.load_state_dict(torch.load(model_load_path, map_location=device))
         model.device = device
         model = model.to(device)
 
@@ -106,7 +120,7 @@ def main(args):
         # Contrast learning in fine-tune state
         if args.contrastive:
             new_loss= model.get_contrastive_loss(gen_inputs, gen_outputs)
-            loss += new_loss
+            loss += new_loss * args.mix_rate # Multiply mix_rate for weighted sum
             if debug:
                 logger.info(f"Contrastive loss = {new_loss}")
         
@@ -147,7 +161,7 @@ def main(args):
                         if first_batch:
                             test_input = gen_inputs[0]
                             test_outputs = model.generate([test_input])[0]
-                            dev_loss += (criteria(gen_inputs, gen_outputs)).item() * args.batch_size
+                            dev_loss += (criteria(gen_inputs, gen_outputs, debug=True)).item() * args.batch_size
                             first_batch=False
                         else:
                             dev_loss += (criteria(gen_inputs, gen_outputs)).item() * args.batch_size
@@ -187,20 +201,29 @@ if __name__ == "__main__":
     parser.add_argument("--generative", required=False, action="store_true", help="Use Generative NLL loss for training.")
     parser.add_argument("--contrastive", required=False, action="store_true", help="Use TrieCL contrastive loss for training.")
 
+    # Base model/checkpoint configuration
     parser.add_argument("--from_checkpoint", required=False, default=None, help="Pretrained checkpoint to load and resume training.")
     parser.add_argument("--base_model", required=False, default="bart", choices=["bart", "t5"], help="Base model to train. If using `from_checkpoint`, you do not need to specify this option.")
 
+    # Training objective
+    parser.add_argument("--loss_fn", required=False, default="triecl", choices=["triecl", "brio", "mrt"], help="Loss function to use. TrieCL, BRIO, MRT(Minimum Risk Training) are supported")
+    parser.add_argument("--offline_dataset", type=str, required=False, help="Whether to use online train or not. Only used for loss_fn='triecl'|'brio'")
+
     # Hyperparameters
-    parser.add_argument("--torch_seed", type=int, default=0, help="torch_seed() value")
     parser.add_argument("--batch_size", type=int, default=16, help="training batch size")
-    parser.add_argument("--lr", type=float, default=5e-5, help="Learning rate(default: Adam optimizer)")
+    parser.add_argument("--lr", type=float, default=5e-5, help="Learning rate (default: Adam optimizer)")
     parser.add_argument("--epoch", type=int, default=5, help="epoch count")
-    parser.add_argument("--num_beams", type=int, default=12, help="number of beams(generated sequences) per inference")
-    parser.add_argument("--contrast_lambda", type=float, default=0.001, help="Contrast hinge value for BRIO")
-    parser.add_argument("--len_penalty", type=float, default=1, help="Length penalty for BRIO")
-    parser.add_argument("--mix_rate", type=float, default=1, help="(MLE:Contrast=1:mix_rate) mix rate for BRIO")
+    parser.add_argument("--num_beams", type=int, default=16, help="number of beams(generated sequences) per inference/contrastive learning")
+    parser.add_argument("--contrast_lambda", type=float, default=float('inf'), help="Contrast hinge value (default: triecl==0.5, brio==0.01)")
+    parser.add_argument("--len_penalty", type=float, default=1, help="Length penalty (default: brio==1)")
+    parser.add_argument("--mix_rate", type=float, default=1, help="(MLE:Loss=1:mix_rate) mix rate (default: 1)")
+
     parser.add_argument("--log_interval", type=int, default=1000, help="validating / checkpoint saving interval. Validates at the end of each epoch for default.")
     parser.add_argument("--early_stop", type=int, default=4, help="if valid loss does not decrease for `early_stop` validations, stop training.")
+
+    # PyTorch/CUDA configuration
+    parser.add_argument("--gpu", type=int, default=0, help="CUDA index for training")
+    parser.add_argument("--torch_seed", type=int, default=0, help="torch_seed() value")
 
     # Checkpoint configs
     parser.add_argument("--model_store_path", required=False, default='checkpoints', help="Directory to store model checkpoints.")
@@ -209,6 +232,11 @@ if __name__ == "__main__":
     parser.add_argument("--secure", required=False, action="store_true", help="")
 
     args = parser.parse_args()
+    # Set contrast_lambda according to loss_fn
+    if args.loss_fn == "triecl":
+        args.contrast_lambda = 0.5
+    elif args.loss_fn == "brio":
+        args.contrast_lambda = 0.01
 
     assert args.generative or args.contrastive
 
