@@ -92,9 +92,11 @@ class Paraphraser(nn.Module):
                 input_ids,
                 num_beams=batch_size,
                 # Output control
+                # max_new_tokens=int(input_ids.size(1)),
                 num_return_sequences=batch_size,
                 return_dict_in_generate=True,
                 output_scores=True,
+                early_stopping=True
             )
             sequences = output.sequences.reshape(batch_size, batch_size, -1)[:, :, 1:]
             decoder_mask = sequences != self.pad_id
@@ -104,36 +106,34 @@ class Paraphraser(nn.Module):
             ranks = torch.argsort(pibleu_score, dim=1).to(torch.float32)
 
             # Generate sequence pair differences
-            rank_diff_matrix = F.relu(ranks.unsqueeze(2) - ranks.unsqueeze(1)) # batch_size * (batch_size)  * (batch_size)
+            rank_diff_matrix = ranks.unsqueeze(2) - ranks.unsqueeze(1) # batch_size * (batch_size)  * (batch_size)
             rank_diff_matrix *= self.contrast_lambda
-            rank_diff_mask = (rank_diff_matrix != 0).to(torch.float32)
+            rank_diff_mask = (rank_diff_matrix > 0).to(torch.float32)
 
         # Compare beams according to their rank
         # we compute single input and its output beams one by one(that's why we set beam_size to batch_size)
         contrast_loss = 0
-        logits = []
 
         # Retrieve logits and take log-softmax
+        contrast_loss = 0
         for i in range(batch_size):
-            logits.append(self.base(
+            logits = self.base(
                     input_ids=torch.tile(input_ids[i].unsqueeze(0), (batch_size, 1)),
                     attention_mask=torch.tile(attention_mask[i].unsqueeze(0), (batch_size, 1)),
                     decoder_input_ids=sequences[i],
                     decoder_attention_mask=decoder_mask[i]
-                ).logits.unsqueeze(0) # 1 * batch_size * seq_len * vocab_size
-            )
-        logits = torch.cat(logits, dim=0) # batch_size * batch_size * seq_len * vocab_size
+            ).logits # batch_size * seq_len * vocab_size
 
-        # Calculate NLL losses and length penalty
-        losses = - loss_fct(logits.reshape(-1, logits.size(3)), sequences.reshape(-1))
-        losses = losses.reshape(logits.size(0), logits.size(1), logits.size(2)) * decoder_mask # batch_size * batch_size * seq_len
-        losses = torch.sum(losses, dim=-1) / torch.pow(torch.sum(decoder_mask, dim=2) - 1, self.len_penalty)
-        
-        # calculate pairwise loss
-        loss_diff_matrix = losses.unsqueeze(1) - losses.unsqueeze(2)
-        loss_terms = torch.max(torch.zeros_like(loss_diff_matrix), rank_diff_matrix - loss_diff_matrix)
-        loss_terms *= rank_diff_mask
-        contrast_loss = torch.sum(loss_terms) / torch.sum(rank_diff_mask)
+            # Calculate NLL losses and length penalty
+            losses = - loss_fct(logits.reshape(-1, logits.size(2)), sequences[i].reshape(-1))
+            losses = losses.reshape(logits.size(0), logits.size(1)) * decoder_mask[i] # batch_size * seq_len
+            losses = torch.sum(losses, dim=-1) / torch.pow(torch.sum(decoder_mask[i], dim=1) - 1, self.len_penalty)
+            
+            # calculate pairwise loss
+            loss_diff_matrix = losses.unsqueeze(1) - losses.unsqueeze(0)
+            loss_terms = torch.max(torch.zeros_like(loss_diff_matrix), rank_diff_matrix[i] - loss_diff_matrix)
+            loss_terms *= rank_diff_mask[i]
+            contrast_loss += torch.sum(loss_terms) / torch.sum(rank_diff_mask[i])
         
         return contrast_loss * self.mix_rate
 
@@ -151,10 +151,11 @@ class Paraphraser(nn.Module):
             input_ids,
             num_beams=self.num_beams,
             # Output control
-            max_new_tokens=int(input_ids.size(1) * 1.5),
+            max_new_tokens=int(input_ids.size(1) * 1.2),
             num_return_sequences=self.num_beams,
             return_dict_in_generate=True,
             output_scores=True,
+            early_stopping=True
         )
         # Convert ids to tokens
         output = self.tokenizer.batch_decode(output.sequences, skip_special_tokens=skip_special_tokens)
