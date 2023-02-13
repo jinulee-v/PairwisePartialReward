@@ -52,7 +52,7 @@ class Paraphraser(ParaphraserBase):
             num_beams: int = None,
             contrast_lambda : float = None,
             device: torch.device = torch.device("cpu"), **kwargs):
-        super(Paraphraser, self).__init__()
+        super(Paraphraser, self).__init__(base, tokenizer, num_beams=num_beams, device=device)
 
         # BART Layer
         self.base = base
