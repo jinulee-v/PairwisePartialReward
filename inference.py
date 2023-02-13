@@ -64,7 +64,7 @@ def main(args):
         bart_tokenizer,
         num_beams=args.num_beams
     )
-    model.load_state_dict(torch.load(model_store_path))
+    model.load_state_dict(torch.load(model_store_path, map_location=device))
     model.device = device
     model = model.to(device)
 
