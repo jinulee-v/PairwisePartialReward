@@ -19,7 +19,7 @@ model_id = "facebook/bart-base"
 
 def main(args):
     # Set torch
-    torch.manual_seed(args.torch_seed)
+    torch.manual_seed(0)
 
     # For simplicity, if a directory is given, load the last checkpoint(last name in alphabetical order)
     if args.model_store_path.endswith(".pt"):
