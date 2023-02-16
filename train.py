@@ -3,6 +3,7 @@ import json
 from tqdm import tqdm
 import os, sys
 import logging
+import re
 
 import torch
 from torch.utils.data import DataLoader
@@ -97,6 +98,12 @@ def main(args):
         model.load_state_dict(torch.load(model_load_path, map_location=device))
         model.device = device
         model = model.to(device)
+        if args.from_checkpoint == args.model_postfix:
+            # If resume training from an error,
+            resume_training=True
+            epoch = int(re.search("epoch_([0-9]*)", last_checkpoint).group(1))
+            step = int(re.search("step_([0-9]*)", last_checkpoint).group(1))
+            resume_epoch_step = (epoch, step)
 
     # Load data
     with open(args.train_gen_data, "r", encoding='UTF-8') as file:
@@ -134,11 +141,20 @@ def main(args):
     min_loss = 1e+10
     early_stop_count = 0
     for epoch in range(args.epoch):  # loop over the dataset multiple times
+        if resume_training:
+            # If resume training from an error, skip to the halted epoch/step
+            if (epoch, 0) <= resume_epoch_step: 
+                continue
         logger.info(f"< epoch {epoch} >")
         # Train phase
         model.train()
         epoch_size = len(train_gen_loader)
         for i, gen_data in enumerate(tqdm(train_gen_loader, total=epoch_size)):
+            if resume_training:
+                # If resume training from an error, skip to the halted epoch/step
+                if (epoch, i) <= resume_epoch_step: 
+                    continue
+
             # get the inputs; data is a list of [inputs, labels]
             gen_inputs, gen_outputs = gen_data
 
