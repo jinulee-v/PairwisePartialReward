@@ -88,6 +88,7 @@ def main(args):
         sample_size=args.sample_size,
         device=device
     ).to(device)
+    resume_training = False
     if args.from_checkpoint is not None:
         # Fine-tune from a local checkpoint
         assert os.path.isdir(args.model_store_path)
