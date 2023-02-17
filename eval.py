@@ -69,10 +69,22 @@ def main(args):
     logger.info("=================================================")
     logger.info("Analysis result")
 
-    logger.info("Paraphrases(detected by BERT model on QQP)")
+    logger.info("Paraphrases(detected by BERT paraphrase detection model on PAWS dataset)")
     logger.info(f"Total paraphrases rate: {torch.mean(para).item()}")
     logger.info(f"Paraphrases per beam:")
     for beam_id, score in enumerate(torch.mean(para, dim=0).tolist()):
+        logger.info(f"    beam {beam_id + 1}: {score}")
+
+
+    logger.info("")
+    logger.info("BLEU score")
+    logger.info(f"Total average: {torch.mean(bleu)}")
+    logger.info(f"BLEU score per beam:")
+    for beam_id, score in enumerate(torch.mean(bleu, dim=0).tolist()):
+        logger.info(f"    beam {beam_id + 1}: {score}")
+    bleu_sorted, _ = torch.sort(bleu, dim=-1)
+    logger.info(f"BLEU score per beam(sorted):")
+    for beam_id, score in enumerate(torch.mean(bleu_sorted, dim=0).tolist()):
         logger.info(f"    beam {beam_id + 1}: {score}")
 
     logger.info("")
