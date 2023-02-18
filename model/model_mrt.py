@@ -10,7 +10,7 @@ from transformers import (
 
 from .pibleu import get_pibleu_score
 from .model import ParaphraserBase
-
+torch.autograd.set_detect_anomaly(True)
 class Paraphraser(ParaphraserBase):
     """
     Implementation of MRT(Minimum Risk Training) for diverse paraphrase generation
@@ -31,7 +31,6 @@ class Paraphraser(ParaphraserBase):
         self.pad_id = self.base.config.pad_token_id
 
         self.num_beams = num_beams
-        self.contrast_lambda = contrast_lambda
         self.sample_size = sample_size
         self.device = device
 
@@ -44,6 +43,7 @@ class Paraphraser(ParaphraserBase):
 
         @return loss
         """
+        loss_fct = torch.nn.CrossEntropyLoss(reduction='none')
         batch_size = len(inputs)
 
         # Tokenize
@@ -53,27 +53,72 @@ class Paraphraser(ParaphraserBase):
         attention_mask = input_ids != self.pad_id
 
         # Generate in beam sequences(beam size = batch size)
-        output = self.base.generate(
-            input_ids,
-            num_beams=self.sample_size,
-            # Output control
-            num_return_sequences=self.sample_size,
-            return_dict_in_generate=True,
-            do_sample=True,
-            output_scores=True
-        )
-
         with torch.no_grad():
-            sequences = output.sequences.reshape(batch_size, self.sample_size, -1)[:, :, 1:]
-
-            # Rank the outputs
-            pibleu_score = get_pibleu_score(input_ids, sequences, self.tokenizer) # batch_size * sample_size
+            # Batchified sequence loss calcuiation
+            sequences = None
+            for start in range(0, self.sample_size, batch_size):
+                end = min(start + batch_size, self.sample_size)
+                output = self.base.generate(
+                    input_ids,
+                    # Output control
+                    num_return_sequences=end - start,
+                    return_dict_in_generate=True,
+                    do_sample=True
+                ).sequences.reshape(batch_size, end-start, -1)[:, :, 1:]
+                # Append to sequences
+                if sequences is None:
+                    sequences = output
+                else:
+                    # pad to longer tensor
+                    if sequences.size(2) > output.size(2):
+                        padder = torch.ones((output.size(0), output.size(1), sequences.size(2)-output.size(2)), device=output.device) * self.pad_id
+                        output = torch.cat((output, padder), dim=2)
+                    elif output.size(2) > sequences.size(2):
+                        padder = torch.ones((sequences.size(0), sequences.size(1), output.size(2)-sequences.size(2)), device=sequences.device) * self.pad_id
+                        sequences = torch.cat((sequences, padder), dim=2)
+                    # append
+                    sequences = torch.cat((sequences, output), dim=1)
+        
+        # Minimum Risk Training
+        mrt_loss = 0
+        for i in range(batch_size):
+            # Deduplicate sampled sequences
+            sequences_dedup = torch.unique(sequences[i], dim=0)
+            decoder_mask = sequences_dedup != self.pad_id
+            # vanishing-prevention
+            # vanish_prevent = sequences_dedup.size(1) * 4
             
-        # Minimum risk training
-        token_scores = torch.cat([score.unsqueeze(1) for score in output.scores], dim=1).reshape(batch_size, self.sample_size, len(output.scores), -1)
-        token_scores = torch.gather(token_scores, 3, sequences.unsqueeze(3)).squeeze(3)
-        token_scores *= (sequences != self.pad_id).to(torch.float32)
-        sequence_prob = torch.exp(torch.sum(token_scores, dim=2))
-        loss = pibleu_score * sequence_prob / torch.sum(sequence_prob, dim=1, keepdim=True)
+            # Get PiBLEU score
+            pibleu_score = 1 - get_pibleu_score(input_ids[i].unsqueeze(0), sequences_dedup.unsqueeze(0), self.tokenizer)[0] # batch_size * num_beams
 
-        return torch.sum(loss) / (batch_size * self.sample_size)
+            total_loss_per_sample = 0
+            total_sample_prob = 0
+            # Batchified sequence loss calcuiation
+            for start in range(0, sequences_dedup.size(0), batch_size):
+                end = min(start + batch_size, sequences_dedup.size(0))
+                # print(i, sequences_dedup.size(), start, end)
+                logits = self.base(
+                    input_ids=torch.tile(input_ids[i].unsqueeze(0), (end-start, 1)),
+                    attention_mask=torch.tile(attention_mask[i].unsqueeze(0), (end-start, 1)),
+                    decoder_input_ids=sequences_dedup[start:end],
+                    decoder_attention_mask=decoder_mask[start:end]
+                ).logits # (end-start) * seq_len * vocab_size
+                
+                # Calculate NLL losses(=log probability)
+                log_prob = - loss_fct(logits.reshape(-1, logits.size(2)), sequences_dedup[start:end].reshape(-1))
+                log_prob = log_prob.reshape(logits.size(0), logits.size(1)) * decoder_mask[start:end] # num_beams * seq_len
+                log_prob = torch.sum(log_prob, dim=1) # num_beams
+                log_prob = torch.clamp(log_prob, min=-10, max=0) # Prevent NaN due to extreme negative values
+                
+                prob = torch.exp(log_prob) # num_beams
+                
+                # Calculate loss
+                # print(prob, pibleu_score[start:end])
+                total_loss_per_sample += torch.sum(prob * pibleu_score[start:end])
+                # Accumulate sample probabilities
+                total_sample_prob += torch.sum(prob)
+            
+            if total_sample_prob > 0: # NaN prevention
+                mrt_loss += total_loss_per_sample / total_sample_prob
+
+        return mrt_loss / batch_size

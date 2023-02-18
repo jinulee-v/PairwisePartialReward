@@ -36,7 +36,7 @@ def get_para_score(s1, s2, device):
     token_type_ids = [torch.tensor(x) for x in tokenized_input_seq_pair["token_type_ids"]]
     attention_masks = [torch.tensor(x) for x in tokenized_input_seq_pair["attention_mask"]]
     predicted_probability = None
-    for head in range(0, length - 1, batch_size):
+    for head in range(0, length, batch_size):
         tail = min(head + batch_size, length)
         with torch.no_grad():
             input_id = pad_sequence(input_ids[head:tail], batch_first=True, padding_value=pad_id).to(device)
