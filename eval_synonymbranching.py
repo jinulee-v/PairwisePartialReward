@@ -83,18 +83,60 @@ def main(args):
     # Eval phase (on dev set)
     model.eval()
 
-    result = []
+    original_prob = []
+    synonym_prob = []
+    logprob_diff = []
+    synonym_rank = []
     for batch in tqdm(test_loader):
         with torch.no_grad():
-            result.extend(model.synonym_branching_test(*batch).tolist())
-    result = torch.tensor(result)
+            result = model.synonym_branching_test(*batch)
+            original_prob.extend(result["original_prob"].tolist())
+            synonym_prob.extend(result["synonym_prob"].tolist())
+            logprob_diff.extend(result["logprob_diff"].tolist())
+            synonym_rank.extend(result["synonym_rank"].tolist())
 
     logger.info("=================================================")
-    logger.info("Analysis result")
+
+    logger.info("")
+    logger.info("Original token probability: If an appropriate synonym exists, how does the token probability change?")
+    logger.info(f"Total average: {sum(original_prob) / len(original_prob)}")
+    original_prob = sorted(original_prob)
+    logger.info(f"min: {original_prob[0]}")
+    logger.info(f"Q1 : {original_prob[1 * len(original_prob)//4]}")
+    logger.info(f"Q2 : {original_prob[2 * len(original_prob)//4]}")
+    logger.info(f"Q3 : {original_prob[3 * len(original_prob)//4]}")
+    logger.info(f"max: {original_prob[-1]}")
+    logger.info("")
+    logger.info("Synonym probability: If an appropriate synonym exists, how does the token probability change?")
+    logger.info(f"Total average: {sum(synonym_prob) / len(synonym_prob)}")
+    synonym_prob = sorted(synonym_prob)
+    logger.info(f"min: {synonym_prob[0]}")
+    logger.info(f"Q1 : {synonym_prob[1 * len(synonym_prob)//4]}")
+    logger.info(f"Q2 : {synonym_prob[2 * len(synonym_prob)//4]}")
+    logger.info(f"Q3 : {synonym_prob[3 * len(synonym_prob)//4]}")
+    logger.info(f"max: {synonym_prob[-1]}")
 
     logger.info("")
     logger.info("Synonym branching factor = logp(synonym) - logp(original)")
-    logger.info(f"Total average: {torch.mean(result)}")
+    logger.info(f"Total average: {sum(logprob_diff) / len(logprob_diff)}")
+    logprob_diff = sorted(logprob_diff)
+    logger.info(f"min: {logprob_diff[0]}")
+    logger.info(f"Q1 : {logprob_diff[1 * len(logprob_diff)//4]}")
+    logger.info(f"Q2 : {logprob_diff[2 * len(logprob_diff)//4]}")
+    logger.info(f"Q3 : {logprob_diff[3 * len(logprob_diff)//4]}")
+    logger.info(f"max: {logprob_diff[-1]}")
+    positive_values = sum([(1 if x>0 else 0) for x in logprob_diff])
+    logger.info(f"positive_value: {positive_values} ({positive_values / len(logprob_diff) * 100} %)")
+    
+    logger.info("")
+    logger.info("Synonym rank = rank of the synonym token among all vocab(lower the better)")
+    logger.info(f"Total average: {sum(synonym_rank) / len(synonym_rank)}")
+    synonym_rank = sorted(synonym_rank)
+    logger.info(f"min: {synonym_rank[0]}")
+    logger.info(f"Q1 : {synonym_rank[1 * len(synonym_rank)//4]}")
+    logger.info(f"Q2 : {synonym_rank[2 * len(synonym_rank)//4]}")
+    logger.info(f"Q3 : {synonym_rank[3 * len(synonym_rank)//4]}")
+    logger.info(f"max: {synonym_rank[-1]}")
 
     logger.info("=================================================")
 

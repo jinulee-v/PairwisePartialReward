@@ -40,4 +40,4 @@ class SynonymBranchingEvalDataset():
     
     def __getitem__(self, i):
         datum = self.data[i]
-        return datum["input"], datum["output_prefix"], datum["original"], datum["synonym"]
+        return datum["input"], datum["output_prefix"].rstrip(), ' ' + datum["original"], ' ' + datum["synonym"]
