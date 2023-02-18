@@ -20,7 +20,6 @@ class Paraphraser(ParaphraserBase):
             base: PreTrainedModel,
             tokenizer: PreTrainedTokenizer,
             num_beams: int = None,
-            contrast_lambda : float = None,
             sample_size: int = None,
             device: torch.device = torch.device("cpu"), **kwargs):
         super(Paraphraser, self).__init__(base, tokenizer, num_beams=num_beams, device=device)
@@ -71,10 +70,10 @@ class Paraphraser(ParaphraserBase):
                 else:
                     # pad to longer tensor
                     if sequences.size(2) > output.size(2):
-                        padder = torch.ones((output.size(0), output.size(1), sequences.size(2)-output.size(2)), device=output.device) * self.pad_id
+                        padder = torch.ones((output.size(0), output.size(1), sequences.size(2)-output.size(2)), dtype=torch.long, device=output.device) * self.pad_id
                         output = torch.cat((output, padder), dim=2)
                     elif output.size(2) > sequences.size(2):
-                        padder = torch.ones((sequences.size(0), sequences.size(1), output.size(2)-sequences.size(2)), device=sequences.device) * self.pad_id
+                        padder = torch.ones((sequences.size(0), sequences.size(1), output.size(2)-sequences.size(2)), dtype=torch.long, device=sequences.device) * self.pad_id
                         sequences = torch.cat((sequences, padder), dim=2)
                     # append
                     sequences = torch.cat((sequences, output), dim=1)
@@ -108,7 +107,7 @@ class Paraphraser(ParaphraserBase):
                 log_prob = - loss_fct(logits.reshape(-1, logits.size(2)), sequences_dedup[start:end].reshape(-1))
                 log_prob = log_prob.reshape(logits.size(0), logits.size(1)) * decoder_mask[start:end] # num_beams * seq_len
                 log_prob = torch.sum(log_prob, dim=1) # num_beams
-                log_prob = torch.clamp(log_prob, min=-10, max=0) # Prevent NaN due to extreme negative values
+                log_prob = torch.clamp(log_prob, min=-50, max=0) # Prevent NaN due to extreme negative values
                 
                 prob = torch.exp(log_prob) # num_beams
                 
