@@ -70,10 +70,10 @@ class Paraphraser(ParaphraserBase):
                 else:
                     # pad to longer tensor
                     if sequences.size(2) > output.size(2):
-                        padder = torch.ones((output.size(0), output.size(1), sequences.size(2)-output.size(2)), dtype=torch.long, device=output.device) * self.pad_id
+                        padder = torch.ones((output.size(0), output.size(1), sequences.size(2)-output.size(2)), device=output.device, dtype=torch.long) * self.pad_id
                         output = torch.cat((output, padder), dim=2)
                     elif output.size(2) > sequences.size(2):
-                        padder = torch.ones((sequences.size(0), sequences.size(1), output.size(2)-sequences.size(2)), dtype=torch.long, device=sequences.device) * self.pad_id
+                        padder = torch.ones((sequences.size(0), sequences.size(1), output.size(2)-sequences.size(2)), device=sequences.device, dtype=torch.long) * self.pad_id
                         sequences = torch.cat((sequences, padder), dim=2)
                     # append
                     sequences = torch.cat((sequences, output), dim=1)
@@ -90,9 +90,8 @@ class Paraphraser(ParaphraserBase):
             # Get PiBLEU score
             pibleu_score = 1 - get_pibleu_score(input_ids[i].unsqueeze(0), sequences_dedup.unsqueeze(0), self.tokenizer)[0] # batch_size * num_beams
 
-            total_loss_per_sample = 0
-            total_sample_prob = 0
-            # Batchified sequence loss calcuiation
+            log_probs = None
+            # Batchified sequence loss calculation
             for start in range(0, sequences_dedup.size(0), batch_size):
                 end = min(start + batch_size, sequences_dedup.size(0))
                 # print(i, sequences_dedup.size(), start, end)
@@ -107,17 +106,22 @@ class Paraphraser(ParaphraserBase):
                 log_prob = - loss_fct(logits.reshape(-1, logits.size(2)), sequences_dedup[start:end].reshape(-1))
                 log_prob = log_prob.reshape(logits.size(0), logits.size(1)) * decoder_mask[start:end] # num_beams * seq_len
                 log_prob = torch.sum(log_prob, dim=1) # num_beams
-                log_prob = torch.clamp(log_prob, min=-50, max=0) # Prevent NaN due to extreme negative values
+
+                if log_probs is None:
+                    log_probs = log_prob
+                else:
+                    log_probs = torch.cat((log_probs, log_prob), dim=0)
                 
-                prob = torch.exp(log_prob) # num_beams
-                
-                # Calculate loss
-                # print(prob, pibleu_score[start:end])
-                total_loss_per_sample += torch.sum(prob * pibleu_score[start:end])
-                # Accumulate sample probabilities
-                total_sample_prob += torch.sum(prob)
+            log_probs -= torch.mean(log_probs) # normalize to prevent underflow NaN
+            probs = torch.exp(log_probs) # num_beams
             
-            if total_sample_prob > 0: # NaN prevention
+            # Calculate loss
+            # print(prob, pibleu_score[start:end])
+            total_loss_per_sample = torch.sum(probs * pibleu_score)
+            # Accumulate sample probabilities
+            total_sample_prob = torch.sum(probs)
+            
+            if torch.isfinite(total_loss_per_sample) and torch.isfinite(total_sample_prob): # NaN prevention
                 mrt_loss += total_loss_per_sample / total_sample_prob
 
         return mrt_loss / batch_size

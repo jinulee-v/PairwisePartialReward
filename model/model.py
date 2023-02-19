@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
 from transformers import (
     PreTrainedModel,
@@ -88,3 +89,74 @@ class ParaphraserBase(nn.Module):
                 results[-1].append(output[i])
                 i += 1
         return results
+
+    def synonym_branching_test(self, inputs, output_prefixes, original, synonym):
+        """
+        Script for testing synonym branching.
+        @param inputs List[str]
+        @param output_prefixes List[str]
+        @param original List[str]
+        @param synonym List[str]
+
+        @return loss
+        """
+        # Transform batch to list
+        inputs, output_prefixes, original, synonym = list(inputs), list(output_prefixes), list(original), list(synonym)
+
+        # Tokenize
+        input_ids = self.tokenizer(inputs, truncation=True)["input_ids"]
+        input_ids = [torch.tensor(idx, device=self.device) for idx in input_ids]
+        input_ids = pad_sequence(input_ids, batch_first=True, padding_value=self.pad_id)
+        input_attention_mask = input_ids != self.pad_id
+
+        output_ids = self.tokenizer(output_prefixes, truncation=True)["input_ids"]
+        original_ids = self.tokenizer(original, add_special_tokens=False)["input_ids"]
+        synonym_ids = self.tokenizer(synonym, add_special_tokens=False)["input_ids"]
+        first_diff_tok_idx = []
+        # If first few tokens overlap, add the overlaping region to output_ids
+        for out, o, s in zip(output_ids, original_ids, synonym_ids):
+            i = 0
+            try:
+                while o[i] == s[i]:
+                    out.append(o[i])
+                    i+=1
+                assert o[i] != s[i]
+                first_diff_tok_idx.append([o[i], s[i]])
+            except IndexError:
+                raise ValueError(f"original & synonym must be different: original={self.tokenizer.decode(o)}, synonym={self.tokenizer.decode(s)}")
+
+        output_ids = [torch.tensor(idx, device=self.device) for idx in output_ids]
+        output_ids = pad_sequence(output_ids, batch_first=True, padding_value=self.pad_id)
+        output_ids[output_ids==self.tokenizer.eos_token_id] = self.pad_id # replace EOS to PAD
+        output_attention_mask = output_ids != self.pad_id
+        boundaries = torch.sum(output_attention_mask, dim=1)-1
+
+        first_diff_tok_idx = torch.tensor(first_diff_tok_idx, dtype=torch.long, device=self.device)
+
+        logits = self.base(
+            input_ids=input_ids,
+            attention_mask=input_attention_mask,
+            decoder_input_ids=output_ids,
+            decoder_attention_mask = output_attention_mask
+        ).logits # batch_size, seq_len, vocab_size
+        logits_gather_index = torch.tile(boundaries.unsqueeze(1).unsqueeze(2), (1, 1, logits.size(2)))
+        logits = torch.gather(logits, 1, logits_gather_index).squeeze(1) # batch_size, vocab_size
+
+        # Calculate logprob_diff
+        # logprob_diff = logp(synonym) - logp(original)
+        logprob = F.log_softmax(logits, dim=1)
+        compare_logprob = torch.gather(logprob, 1, first_diff_tok_idx) # batch_size, 2
+        logprob_diff = compare_logprob[:, 1] - compare_logprob[:, 0]
+        original_prob = torch.gather(logprob, 1, first_diff_tok_idx[:, 0].unsqueeze(1)).squeeze(1) # batch_size, 1
+        synonym_prob = torch.gather(logprob, 1, first_diff_tok_idx[:, 1].unsqueeze(1)).squeeze(1) # batch_size, 1
+
+        # Calculate synonym_rank
+        ranks = torch.argsort(logprob, dim=1, descending=True)
+        synonym_rank = torch.gather(ranks, 1, first_diff_tok_idx[:, 1].unsqueeze(1)).squeeze(1) # batch_size, 1
+        
+        return {
+            "original_prob": original_prob,
+            "synonym_prob": synonym_prob,
+            "logprob_diff": logprob_diff,
+            "synonym_rank": synonym_rank
+        }
