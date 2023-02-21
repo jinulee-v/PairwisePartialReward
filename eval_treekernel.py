@@ -10,6 +10,7 @@ import json
 from tqdm import tqdm, trange
 import os, sys
 import logging
+import re
 
 import torch
 import math
@@ -18,10 +19,13 @@ import nltk
 from nltk.parse.dependencygraph import DependencyGraph
 from diaparser.parsers import Parser
 from tokenizer.tokenizer import Tokenizer # from diaparser
+from stanza.pipeline.core import Pipeline
 
 logger = None
 dependency_parser = Parser.load('en_ptb.electra', lang='en')
 dependency_tokenizer = Tokenizer('en', verbose=False)
+_pipe = dependency_tokenizer.pipeline.__dict__; _pipe.pop('processors')
+dependency_tokenizer.pipeline = Pipeline(processors='tokenize,pos', **_pipe) # Manually add PoS tagger to diaparser pipe
 
 all_parse_trees = []
 
@@ -31,12 +35,29 @@ def diaparser_to_nltk_tree(sentences):
     result = [str(sent) for sent in result.sentences] # Get CoNLL-U (10 cols) representation
     result = ['\n'.join([line for line in conll.split('\n') if not line.startswith('#')]) for conll in result] # remove comment lines since NLTK cannot interpret it
 
-    dep_tree = [
+    lex_dep_tree = [
         DependencyGraph(conll, top_relation_label='root').tree() # Convert to nltk.tree.Tree
         for conll in result
     ]
 
-    return dep_tree
+    # Move [7] to [1] to create PoS tree lemmatized
+    pos_sub_result = []
+    for sent in result:
+        lines = sent.splitlines()
+        new_lines = []
+        for line in lines:
+            pos = line.split('\t')[7]
+            new_lines.append(
+                re.sub(r"(^[0-9]*\t)(.*?)(\t.*)", rf"\1{pos}\3", line)
+            )
+        pos_sub_result.append('\n'.join(new_lines))
+
+    pos_dep_tree = [
+        DependencyGraph(conll, top_relation_label='root').tree() # Convert to nltk.tree.Tree
+        for conll in pos_sub_result
+    ]
+
+    return lex_dep_tree, pos_dep_tree
 
 class Memoize:
     def __init__(self, fn):
@@ -103,8 +124,7 @@ def find_node_pairs(first_tree, second_tree):
     return node_pairs
 
 @Memoize
-def fast_tree_kernel(first_tree_index, second_tree_index):
-    global all_parse_trees
+def fast_tree_kernel(all_parse_trees, first_tree_index, second_tree_index):
     kernel_score = 0
     first_tree = all_parse_trees[first_tree_index]
     second_tree = all_parse_trees[second_tree_index]
@@ -114,8 +134,8 @@ def fast_tree_kernel(first_tree_index, second_tree_index):
             kernel_score += 1
     return kernel_score
 
-def normalized_fast_tree_kernel(first_tree_index, second_tree_index):
-    return fast_tree_kernel(first_tree_index, second_tree_index) / math.sqrt(fast_tree_kernel(first_tree_index, first_tree_index) * fast_tree_kernel(second_tree_index, second_tree_index))
+def normalized_fast_tree_kernel(all_parse_trees, first_tree_index, second_tree_index):
+    return fast_tree_kernel(all_parse_trees, first_tree_index, second_tree_index) / math.sqrt(fast_tree_kernel(all_parse_trees, first_tree_index, first_tree_index) * fast_tree_kernel(all_parse_trees, second_tree_index, second_tree_index))
 
 
 def main(args):
@@ -165,40 +185,65 @@ def main(args):
         outputs.append(output)
 
     # Batchified parsing
+    lex_parse_trees = []
+    pos_parse_trees = []
     for start in trange(0, len(all_sentences), args.batch_size):
         end = min(start + args.batch_size, len(all_sentences))
         tokenized_sents = [
             [token.text for token in dependency_tokenizer.predict(sent)[0].tokens]
         for sent in all_sentences[start:end]] # Tokenize and extract only lexical forms
-        dep_trees = diaparser_to_nltk_tree(tokenized_sents)
-        all_parse_trees.extend(dep_trees)
+        lex_trees, pos_trees = diaparser_to_nltk_tree(tokenized_sents)
+        lex_parse_trees.extend(lex_trees)
+        pos_parse_trees.extend(pos_trees)
     assert len(all_parse_trees) == len(all_sentences)
     
     # Calculate tree kernel scores
     logger.info("Calculate Tree Kernel scores...")
-    kernel_scores_per_beam = []
+    lex_kernel_scores_per_beam = []
     for ref, outs in zip(tqdm(reference), outputs):
         scores = []
         for out in outs:
             scores.append(
-                normalized_fast_tree_kernel(ref, out)
+                normalized_fast_tree_kernel(lex_parse_trees, ref, out)
             )
-        kernel_scores_per_beam.append(scores)
-    kernel_scores_per_beam = torch.tensor(kernel_scores_per_beam)
+        lex_kernel_scores_per_beam.append(scores)
+    lex_kernel_scores_per_beam = torch.tensor(lex_kernel_scores_per_beam)
+    # num_beams * total_length
+    
+    pos_kernel_scores_per_beam = []
+    for ref, outs in zip(tqdm(reference), outputs):
+        scores = []
+        for out in outs:
+            scores.append(
+                normalized_fast_tree_kernel(pos_parse_trees, ref, out)
+            )
+        pos_kernel_scores_per_beam.append(scores)
+    pos_kernel_scores_per_beam = torch.tensor(pos_kernel_scores_per_beam)
     # num_beams * total_length
 
     logger.info("=================================================")
     logger.info("Analysis result")
 
     logger.info("")
-    logger.info("Tree Kernel score(lower score -> dissimilar paraphrase)")
-    logger.info(f"Total average: {torch.mean(kernel_scores_per_beam)}")
+    logger.info("Dependency Tree Kernel score(lower score -> dissimilar paraphrase)")
+    logger.info(f"Total average: {torch.mean(lex_kernel_scores_per_beam)}")
     logger.info(f"kernel_scores_per_beam score per beam:")
-    for beam_id, score in enumerate(torch.mean(kernel_scores_per_beam, dim=0).tolist()):
+    for beam_id, score in enumerate(torch.mean(lex_kernel_scores_per_beam, dim=0).tolist()):
         logger.info(f"    beam {beam_id + 1}: {score}")
-    kernel_scores_per_beam_sorted, _ = torch.sort(kernel_scores_per_beam, dim=1)
+    lex_kernel_scores_per_beam_sorted, _ = torch.sort(lex_kernel_scores_per_beam, dim=1)
     logger.info(f"kernel_scores_per_beam score per beam(sorted):")
-    for beam_id, score in enumerate(torch.mean(kernel_scores_per_beam_sorted, dim=0).tolist()):
+    for beam_id, score in enumerate(torch.mean(lex_kernel_scores_per_beam_sorted, dim=0).tolist()):
+        logger.info(f"    beam {beam_id + 1}: {score}")
+
+    logger.info("")
+    logger.info("PoS Tree Kernel score(lower score -> dissimilar paraphrase)")
+    logger.info(f"Total average: {torch.mean(pos_kernel_scores_per_beam)}")
+    logger.info(f"kernel_scores_per_beam score per beam:")
+    for beam_id, score in enumerate(torch.mean(pos_kernel_scores_per_beam, dim=0).tolist()):
+        logger.info(f"    beam {beam_id + 1}: {score}")
+    pos_kernel_scores_per_beam_sorted, _ = torch.sort(pos_kernel_scores_per_beam, dim=1)
+    logger.info(f"kernel_scores_per_beam score per beam(sorted):")
+    for beam_id, score in enumerate(torch.mean(pos_kernel_scores_per_beam_sorted, dim=0).tolist()):
         logger.info(f"    beam {beam_id + 1}: {score}")
 
     logger.info("=================================================")
