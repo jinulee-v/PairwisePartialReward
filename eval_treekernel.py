@@ -27,8 +27,6 @@ dependency_tokenizer = Tokenizer('en', verbose=False)
 _pipe = dependency_tokenizer.pipeline.__dict__; _pipe.pop('processors')
 dependency_tokenizer.pipeline = Pipeline(processors='tokenize,pos', **_pipe) # Manually add PoS tagger to diaparser pipe
 
-all_parse_trees = []
-
 def diaparser_to_nltk_tree(sentences):
     # sentences: List[List[str]] : batch of tokenized sentences
     result = dependency_parser.predict(sentences, text='en') # Parse sentences
@@ -195,7 +193,6 @@ def main(args):
         lex_trees, pos_trees = diaparser_to_nltk_tree(tokenized_sents)
         lex_parse_trees.extend(lex_trees)
         pos_parse_trees.extend(pos_trees)
-    assert len(all_parse_trees) == len(all_sentences)
     
     # Calculate tree kernel scores
     logger.info("Calculate Tree Kernel scores...")
