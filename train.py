@@ -94,7 +94,9 @@ def main(args):
         assert os.path.isdir(args.model_store_path)
         model_load_path = os.path.join(args.model_store_path, args.from_checkpoint)
         assert os.path.isdir(model_load_path)
-        last_checkpoint = sorted([f for f in os.listdir(model_load_path) if f.endswith(".pt")], reverse=True)[0]
+        last_checkpoint = sorted([
+            (int(re.search("epoch_([0-9]*)", f).group(1)), int(re.search("step_([0-9]*)", f).group(1)), f) for f in os.listdir(model_load_path) if f.endswith(".pt")], reverse=True
+        )[0][2]
         model_load_path = os.path.join(model_load_path, last_checkpoint)
         model.load_state_dict(torch.load(model_load_path, map_location=device))
         model.device = device
@@ -102,9 +104,10 @@ def main(args):
         if args.from_checkpoint == args.model_postfix:
             # If resume training from an error,
             resume_training=True
-            epoch = int(re.search("epoch_([0-9]*)", last_checkpoint).group(1))
-            step = int(re.search("step_([0-9]*)", last_checkpoint).group(1))
-            resume_epoch_step = (epoch, step)
+            resume_epoch = int(re.search("epoch_([0-9]*)", last_checkpoint).group(1))
+            resume_step = int(re.search("step_([0-9]*)", last_checkpoint).group(1))
+            resume_epoch_step = (resume_epoch, resume_step)
+            logger.info(f"Resume training from checkpoint: epoch {resume_epoch}, step {resume_step}")
 
     # Load data
     with open(args.train_gen_data, "r", encoding='UTF-8') as file:
