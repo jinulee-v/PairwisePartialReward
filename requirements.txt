@@ -1,4 +1,6 @@
-torch
-transformers
-datasets
-nltk
+torch==1.13.1
+transformers==4.26.0
+tokenizers==0.13.2
+datasets==2.9.0
+nltk==3.8.1
+diaparser==1.1.2 # TODO remove dependency
