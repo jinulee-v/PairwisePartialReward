@@ -144,7 +144,7 @@ def main(args):
     for epoch in range(args.epoch):  # loop over the dataset multiple times
         if resume_training:
             # If resume training from an error, skip to the halted epoch/step
-            if (epoch, 0) <= resume_epoch_step: 
+            if (epoch, len(train_gen_loader) * 100) <= resume_epoch_step: 
                 continue
         logger.info(f"< epoch {epoch} >")
         # Train phase
