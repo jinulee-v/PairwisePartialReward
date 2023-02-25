@@ -1,5 +1,6 @@
 torch==1.13.1
 transformers==4.26.0
+sentence-transformers==2.2.2
 tokenizers==0.13.2
 datasets==2.9.0
 nltk==3.8.1

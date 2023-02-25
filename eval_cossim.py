@@ -46,6 +46,7 @@ def main(args):
 
     model = SentenceTransformer(model_id, device=device_str)
 
+    # Obtain scores
     scores = []
     for r in tqdm(result):
         vectors = model.encode([r["input"]] + r["paraphrases"], convert_to_tensor=True, show_progress_bar=False)
@@ -53,9 +54,6 @@ def main(args):
         out_vec = vectors[1:]
         scores.append(torch.nn.functional.cosine_similarity(in_vec, out_vec, dim=1).unsqueeze(0)) # 1 * beam_size
     scores = torch.cat(scores, dim=0) # len(result) * beam_size
-        
-    # Obtain scores
-    
 
     logger.info("=================================================")
     logger.info("Analysis result")
