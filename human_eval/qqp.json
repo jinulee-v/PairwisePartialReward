@@ -1,0 +1,1011 @@
+{
+    "checkpoints": [
+        "qqp_Ref",
+        "bart_qqp_1gen",
+        "bart_qqp_1gen_2gen+triecl",
+        "bart_qqp_1gen_2gen+brio",
+        "bart_qqp_1gen_2gen+mrt"
+    ],
+    "data": [
+        {
+            "input": "Did men ready land on the moon?",
+            "paraphrases": [
+                "Did Americans actually land on the moon?",
+                "Did the USA really make it to the moon?",
+                "Did man really land on the moon?",
+                "Did humans really land on moon?",
+                "Did we really land on the moon?"
+            ]
+        },
+        {
+            "input": "How should I focus on studies?",
+            "paraphrases": [
+                "How could I focus on my studies?",
+                "How should I focus on my studies?",
+                "What should I do to focus on my study?",
+                "What should I do to focus on studies?",
+                "How do I focus better in my study?"
+            ]
+        },
+        {
+            "input": "What is the least painful way for suicide?",
+            "paraphrases": [
+                "What is the cheapest, easiest, least painful way to commit suicide?",
+                "What is the most effective way to suicide?",
+                "What's the absolute easiest way to die?",
+                "What is the least painful way for suicide?",
+                "What would be a cool way to commit suicide?"
+            ]
+        },
+        {
+            "input": "What is the expected cut off of upsc 2016?",
+            "paraphrases": [
+                "What will be the cut off of UPSC prelims 2016?",
+                "What is the expected cut off for upsc exam 2016?",
+                "What is the expected cut off for UPSC CSE 2016?",
+                "What is the expected cut off for UPSC prelims 2016?",
+                "What is the expected cut off for upsc prelims 2016?"
+            ]
+        },
+        {
+            "input": "What is your new year resolution, short term and long term goal for 2017?",
+            "paraphrases": [
+                "What is your New Year's resolutions for 2017?",
+                "What is your new year resolution for 2017 or goal for 2017?",
+                "What are your New Year resolutions for the upcoming year 2017?",
+                "What are your new year resolutions’2017?",
+                "What are your New Years resolutions for 2017?"
+            ]
+        },
+        {
+            "input": "How do I cure math anxiety?",
+            "paraphrases": [
+                "How do I get rid of my math anxiety?",
+                "How do I deal with my math anxiety?",
+                "How do I get over my math anxiety?",
+                "How can I cure my math anxiety?",
+                "How can I get rid of my math anxiety?"
+            ]
+        },
+        {
+            "input": "What are some excuse examples for school?",
+            "paraphrases": [
+                "What are some written excuse examples if you miss school?",
+                "What are some excuses for school?",
+                "What are some examples of an excuse for school?",
+                "What are some excuse examples of school?",
+                "What are some excuse for school?"
+            ]
+        },
+        {
+            "input": "Is there poetic justice in real life?",
+            "paraphrases": [
+                "Like movies poetic justice happen in real life?",
+                "Is there any poetic justice in real life?",
+                "What are some real life examples of poetic justice?",
+                "What is the meaning of \"Poetic Justice\"?",
+                "Is there poetic justice in real life?"
+            ]
+        },
+        {
+            "input": "How do prepare for IAS for a fresher?",
+            "paraphrases": [
+                "How do I prepare for upsc prelim?",
+                "What is the best way to prepare for IAS exam?",
+                "How should one best prepare for IAS examination?",
+                "How do I prepare for IAS?",
+                "How do I prepare for IAS prelims?"
+            ]
+        },
+        {
+            "input": "When the internet was first invented, what was its intended purpose?",
+            "paraphrases": [
+                "What was the intended use of the internet when it was first invented?",
+                "When was the internet invented?",
+                "Why was the internet created? What was its purpose?",
+                "When the internet was invented, what was its intended purpose?",
+                "What was the purpose of the internet?"
+            ]
+        },
+        {
+            "input": "If there will be a war between India and Pakistan who will win?",
+            "paraphrases": [
+                "What would happen if Pakistan declares an all out war on India?",
+                "Who will win the war between India and Pakistan if we go all round indigenous?",
+                "Who will win if a war starts between India and Pakistan?",
+                "Who will win if a war came between India and Pakistan?",
+                "Who will win an all-out war between India and Pakistan?"
+            ]
+        },
+        {
+            "input": "Why do people ask stupid questions on Quora that could be easily answered by Google?",
+            "paraphrases": [
+                "Why do people ask Quora questions which can be answered easily by Google?",
+                "Why do people ask questions on Quora that are easily answerable via a quick internet search?",
+                "Why do people ask questions on Quora that are easily to find answers too on Google?",
+                "Why are so many Quora questions about factual information that the questioner could easily look up?",
+                "Why do so many people ask questions on Quora instead of searching the answers on Wikipedia?"
+            ]
+        },
+        {
+            "input": "How can we write a essay?",
+            "paraphrases": [
+                "How do I write a good essay?",
+                "How do I write an essay in English?",
+                "Why can't I write good essay?",
+                "What is the best way to write an essay?",
+                "How can I write a essay?"
+            ]
+        },
+        {
+            "input": "How can I speak fluent english and get confident?",
+            "paraphrases": [
+                "How do I speak English fluently in half a year?",
+                "How do I speak English fluently?",
+                "How I can speak English with fluency?",
+                "How can I learn to speak English fluently?",
+                "How can I speak fluent English with accuracy?"
+            ]
+        },
+        {
+            "input": "What's the fastest way to make a female have an orgasm?",
+            "paraphrases": [
+                "How do you get a female to orgasm?",
+                "What is the fastest way to have an orgasm?",
+                "What is the best way to make a woman orgasm?",
+                "What is the fastest way to make a woman orgasm?",
+                "How do I make a woman orgasm?"
+            ]
+        },
+        {
+            "input": "What is the best books or novel suggest for knowledge for siblings studying in class 7 and 9 other than their academics?",
+            "paraphrases": [
+                "What is the best books or novels suggest for knowledge for siblings studying in class 7 and 9 other than their academics?",
+                "What are the best books for siblings to study in class 7 and 9?",
+                "What is the best books or novel for knowledge for siblings studying in class 7 and 9 other than their academics?",
+                "What is the best books or novel suggest for siblings studying in class 7 and 9 other than their academics?",
+                "What are the best books for siblings studying in class 7 and 9?"
+            ]
+        },
+        {
+            "input": "How do I hire an ethical hacker?",
+            "paraphrases": [
+                "Where can I hire an email hacker?",
+                "How do I hire a hacker?",
+                "Where can I hire a serious hacker?",
+                "Where can I hire a real bad ass hacker?",
+                "Where can I find/employ a real hacker?"
+            ]
+        },
+        {
+            "input": "How are Effigen diet pills useful for weight loss? Are they harmful for our organism?",
+            "paraphrases": [
+                "Are Ectoplan pills safe for weight loss?",
+                "How are Effigen diet pills helpful for weight loss?",
+                "Are Effigen Diet pills useful for weight loss? Are they harmful for our organism?",
+                "Are Effigen diet pills useful for weight loss?",
+                "How are Effigen Diet pills helpful for weight loss?"
+            ]
+        },
+        {
+            "input": "Will time travel ever become possable?",
+            "paraphrases": [
+                "Is it possible to travel time with real life?",
+                "Can time travel exist somewhere in our universe already?",
+                "Can time travel ever be possible?",
+                "Is time travel still theorized as being possible?",
+                "Can we expect time travel to become a reality?"
+            ]
+        },
+        {
+            "input": "How popular is WeChat in Western countries? And why is it popular?",
+            "paraphrases": [
+                "Is WeChat popular in other countries?",
+                "Why is WeChat popular in Western countries?",
+                "Why is WeChat popular in western countries?",
+                "How popular is WeChat in western countries?",
+                "Why is WeChat so popular in western countries?"
+            ]
+        },
+        {
+            "input": "How can I meet our Prime Minister Mr. Narendra Modi in person?",
+            "paraphrases": [
+                "How to meet Prime Minister Narendra Modi?",
+                "How can I meet Narendra Modi?",
+                "How can I meet Narendra Modi if it's very important?",
+                "How can I get a chance to meet Mr. Narendra Modi?",
+                "How can I meet our Prime Minister Mr. Narendra Modi?"
+            ]
+        },
+        {
+            "input": "What can be the reasons for discontinuation of 500 and 1000 rupee notes? What can be the future effects of it?",
+            "paraphrases": [
+                "Who is going to be most impacted by the decision by Indian govt of banning 500 and 1000 Rupee notes?",
+                "What will be the repercussions of banning Rs 500 and Rs 1000 notes on Indian economy?",
+                "What are the expected consequences of Declaring 500 and 1000 rupee notes as illegal?",
+                "What will be the effects of demonetisation of 500 and 1000 notes on the Indian economy?",
+                "What are the repercussions of 500 and 1000 rupee notes not being legal tender anymore?"
+            ]
+        },
+        {
+            "input": "How do you get a book reviewed?",
+            "paraphrases": [
+                "How do I get my book reviewed?",
+                "How can I get a review for my book?",
+                "What is the best way to get book reviews?",
+                "What is the best way to get a book review?",
+                "How can I get my first book review?"
+            ]
+        },
+        {
+            "input": "Why should one vote for Hillary Clinton in the 2016 presidential election?",
+            "paraphrases": [
+                "Why should I vote for Hillary instead of why I shouldn't vote for Trump?",
+                "What makes you want to vote for Hillary Clinton?",
+                "Why should I vote for Hillary Clinton and not Trump?",
+                "Would anyone really vote for Hillary Clinton?",
+                "Why should I vote for Hillary Clinton?"
+            ]
+        },
+        {
+            "input": "Can a bad person become good?",
+            "paraphrases": [
+                "What factors cause a bad person become good?",
+                "Can a bad person become good?",
+                "What causes a bad person to become good?",
+                "Can bad people become good?",
+                "How can a bad person become good?"
+            ]
+        },
+        {
+            "input": "Which is the best laptop to buy under INR 50K?",
+            "paraphrases": [
+                "Which laptop should I buy for 50k INR?",
+                "Which is the best laptop to buy under RS-50000?",
+                "What is the best laptop under Rs. 50000?",
+                "Which is the best laptop to buy under INR 50K?",
+                "Which is the best laptop to buy under 50k?"
+            ]
+        },
+        {
+            "input": "Where is the one place in the world you feel safe?",
+            "paraphrases": [
+                "“Where is the one place in the world you feel safe?",
+                "What is the only place you feel safe?",
+                "What are the places you feel safe in the world?",
+                "What is the only place you feel safe in the world?",
+                "What is the one place in the world where you feel completely safe?"
+            ]
+        },
+        {
+            "input": "Why do people who want gender equality call themselves feminists instead of egalitarians?",
+            "paraphrases": [
+                "Would feminists be willing to call themselves egalitarians instead of feminists, and advocate explicitly for egalitarianism? Why, or why not?",
+                "Why do some people want to call themselves feminists?",
+                "Why do some people prefer to refer to feminists instead of egalitarians?",
+                "Why do some people want gender equality?",
+                "Why do some people call themselves feminists?"
+            ]
+        },
+        {
+            "input": "When Donald Trump become President, is he required by law to make public his 2017 tax return?",
+            "paraphrases": [
+                "Would Donald Trump be legally required to release his tax returns if he became President?",
+                "When Donald Trump becomes president, will he be forced to disclose his tax returns?",
+                "Now that Donald Trump is President, can he be forced to release his tax returns?",
+                "Now that Donald Trump is president, can he be forced to release his tax returns?",
+                "Now that Donald Trump is president, will he be required to disclose his tax returns?"
+            ]
+        },
+        {
+            "input": "What do you do to fall sleep?",
+            "paraphrases": [
+                "How do you fall into sleep?",
+                "How do I fall asleep?",
+                "What should I do to get to sleep?",
+                "How do I fall asleep quickly?",
+                "What is the best way to fall asleep?"
+            ]
+        },
+        {
+            "input": "Why all intelligent personal assistants by default are a female voice?",
+            "paraphrases": [
+                "Why are most artificial personal assistants female?",
+                "Why are most personal assistants female voice?",
+                "Why are almost all personal assistants female voice?",
+                "Why are all intelligent personal assistants female voice?",
+                "Why are almost all AI assistants female voice?"
+            ]
+        },
+        {
+            "input": "Is Edward Snowden a hero or traitor?",
+            "paraphrases": [
+                "Would you characterize Edward Snowden as a hero, a patriot, both, or neither? Why?",
+                "Is Edward Snowden a hero or traitor?",
+                "Is Edward Snowden a hero or a villain? Why?",
+                "Noam Chomsky: Is Edward Snowden a hero?",
+                "Do you consider Edward Snowden a hero for freedom?"
+            ]
+        },
+        {
+            "input": "What would happen if the American public took arms against the government?",
+            "paraphrases": [
+                "What would happen if the American public took arms against the U.S. government much later when it was more powerful?",
+                "What would happen if the American public took up arms against the government?",
+                "What would happen if the people of the United States took up arms against the government?",
+                "What would happen if the American public turned against the government?",
+                "What would happen if the American public took arms against the government?"
+            ]
+        },
+        {
+            "input": "Why do we lose the ability to trust people after a breakup?",
+            "paraphrases": [
+                "Why do we lose the trust on the people after a harsh breakup?",
+                "Why do people lose trust after a breakup?",
+                "Why do people get over their first breakups?",
+                "Why do we lose the ability to trust people after breakup?",
+                "Why do I lose trust in people after a breakup?"
+            ]
+        },
+        {
+            "input": "How cold can the Gobi Desert get, and how do its average temperatures compare to the ones in the Kalahari Desert?",
+            "paraphrases": [
+                "How cold can the Gobi Desert get, and how do its average temperatures compare to the ones in the Registan Desert?",
+                "How cold can the Gobi Desert get, and how do its average temperatures compare to the ones in the Simpson Desert?",
+                "How cold can the Gobi Desert get, and how do its average temperatures compare to the ones in the Colorado Plateau?",
+                "How cold can the Gobi Desert get, and how do its average temperatures compare to the ones in the Gibson Desert?",
+                "How cold can the Gobi Desert get, and how do its average temperatures compare to the ones in the Sonoran Desert?"
+            ]
+        },
+        {
+            "input": "What would you do if Donald Trump became POTUS?",
+            "paraphrases": [
+                "If Donald Trump became President, what would you do?",
+                "If you were Donald Trump, what would you do?",
+                "What would you do if Donald Trump became the president of America?",
+                "What would you do if Donald Trump became your president?",
+                "What would you do if Donald Trump were president?"
+            ]
+        },
+        {
+            "input": "Is dark/vacuum energy infinite because the expansion of the universe is infinite and more and more of it is created as the universe expands?",
+            "paraphrases": [
+                "If vacuum gravitational and dark energy are created as universe expands without limit?",
+                "If dark and vacuum energy are created with expansion is there potential energy that transforms into these types of energy with expansion?",
+                "If universe is expanding without a limit and dark and vacuum energy are created as it expands?",
+                "Can an infinite amount of dark or vacuum or gravitational energy be created with expansion?",
+                "If more vacuum gravitational and dark energy is created as universe expands can infinite of these be created as they appear without limit?"
+            ]
+        },
+        {
+            "input": "Can we create multiverse travel and how?",
+            "paraphrases": [
+                "Can matter travel through multiverses if the multiverse hypothesis is true?",
+                "Can multiverses travel?",
+                "How can we create a multiverse?",
+                "What is the possibility of multiverse travel?",
+                "Is multiverse travel possible?"
+            ]
+        },
+        {
+            "input": "What have you learned from your life?",
+            "paraphrases": [
+                "What did I learn from life?",
+                "What is the most important thing you have learned in your life?",
+                "What have you learned from your life?",
+                "What is the most important thing you have learned from life?",
+                "What have you learned from life?"
+            ]
+        },
+        {
+            "input": "Who's winning the election, Trump or Clinton?",
+            "paraphrases": [
+                "Who will win the Election? Trump or Clinton?",
+                "Who do you think is going to win the 2016 presidential election?",
+                "Who is winning the election, Trump or Clinton?",
+                "Will Donald Trump or Hillary Clinton win the 2016 US presidential election?",
+                "Who will win, Trump or Clinton?"
+            ]
+        },
+        {
+            "input": "I heard a news where people are burning sacks of notes. How will it affect RBI / Indian economy?",
+            "paraphrases": [
+                "If people burn stacks of 500/1000 Rs notes, will it be a loss/profit to RBI and Indian economy?",
+                "I heard a news where people are burning sacks of notes. How will it affect the economy?",
+                "What will be the effect of banning 500 and 1000 Rs notes on the Indian economy?",
+                "What will be the impact of burning of 500 and 1000 rupees notes on Indian economy?",
+                "What will be the consequences of burning sacks of notes in India?"
+            ]
+        },
+        {
+            "input": "How do you stop a Terrier/Border Collie mix from destroying your furniture?",
+            "paraphrases": [
+                "How do I stop my American Staffy/Kelpie mix from humping my furniture?",
+                "How do you stop your Boxer/Pitbull mix from biting your furniture?",
+                "How do I stop my Labrador/Pug mix from humping my pillows?",
+                "How do I stop my Shepherd-Husky mix puppy from humping my furniture?",
+                "How do you stop your Boxer/Pitbull mix from humping your furniture?"
+            ]
+        },
+        {
+            "input": "Is there a framework for auditing social media?",
+            "paraphrases": [
+                "Is there a template or a framework for social media audit?",
+                "What is the best way to auditing social media?",
+                "What is the framework of social media?",
+                "What is the framework for auditing social media accounts?",
+                "What is the best way to audit social media?"
+            ]
+        },
+        {
+            "input": "What and how do I prepare for the NTSE exam?",
+            "paraphrases": [
+                "Which books should I prefer for the preparation of NTSE exam?",
+                "What is the best way to prepare for NTSE exam?",
+                "How should I prepare for NTSE exam?",
+                "How do I prepare for the NTSE exam?",
+                "How do I prepare for NTSE?"
+            ]
+        },
+        {
+            "input": "How do I improve my pronunciation in English?",
+            "paraphrases": [
+                "How can I improve my English Language?",
+                "How can I become good at English?",
+                "How can I continue to improve my English?",
+                "How can I improve my communication skills in English?",
+                "How can I improve fluency in English?"
+            ]
+        },
+        {
+            "input": "How do I improve my communication skills in one month?",
+            "paraphrases": [
+                "How we improve our communication skills?",
+                "What should I do improve my communication skill?",
+                "How ca n I improve my communication skill?",
+                "How can I improve my communication and verbal skills?",
+                "How can I improve my communication skills specially pronunciation skill?"
+            ]
+        },
+        {
+            "input": "What is the best answer for why should we hire you?",
+            "paraphrases": [
+                "What are the best answers for \"Why should I hire you?\"in a cool way?",
+                "Why should I hire you?",
+                "What are the best answers to \"why should I hire you\" in bank interview?",
+                "What is the best short answer for \"why should I hire you\"?",
+                "What is the best answer for why should I hire you?"
+            ]
+        },
+        {
+            "input": "How could \"Albert Abraham Michelson\" and \"Edward Morley\" have proceeded, having known the invariance of the speed of light C?",
+            "paraphrases": [
+                "How could \"Albert Abraham Michelson\" and \"Edward Morley\" have proceeded, having known the invariance of the velocity of light C?",
+                "How could \"Albert Abraham Michelson\" and Edward Morley have proceeded, having known the invariance of the speed of light C?",
+                "How could \" Albert Abraham Michelson\" and \" Edward Morley\" have proceeded, having known the invariance of the speed of light?",
+                "How could \"Albert Abraham Michelson\" and \" Edward Morley\" have proceeded, having known the invariance of the speed of light?",
+                "How could Albert Michelson and Edward Morley have proceeded, having known the invariance of the speed of light?"
+            ]
+        },
+        {
+            "input": "Why are some regions more prone to have natural disasters?",
+            "paraphrases": [
+                "Which regions in the world  are most prone to natural disasters?",
+                "Why are some areas of the world prone to natural disasters?",
+                "Why are some areas of the world more prone to natural disasters?",
+                "Why are some regions more prone to natural disasters than others?",
+                "Why are some areas more prone to natural disasters?"
+            ]
+        },
+        {
+            "input": "How will the world be 100 years from now?",
+            "paraphrases": [
+                "How will be the world after 100 years?",
+                "What will the world look like in the next 100 years?",
+                "What will the world be like in 100 years from now?",
+                "What will the world look like 100 years from now?",
+                "What will the world look like in 100 years from now?"
+            ]
+        },
+        {
+            "input": "What is the best programming language to learn in 2016?",
+            "paraphrases": [
+                "What are good programming languages to learn in 2016?",
+                "What are the best programming languages to learn today?",
+                "What is the most valuable programming language for the future to learn?",
+                "What is the best programming language for learning programming from scratch?",
+                "What is the best programming language to learn in 2016?"
+            ]
+        },
+        {
+            "input": "Why do we love watching movies?",
+            "paraphrases": [
+                "Why do we love movies so much?",
+                "Why do people love watching movies?",
+                "Why do we like watching movies?",
+                "Why do people like watching movies?",
+                "Why do we love watching movies?"
+            ]
+        },
+        {
+            "input": "How do I find a hacker?",
+            "paraphrases": [
+                "How can I find a true hacker?",
+                "How do I hire a hacker?",
+                "How do I contact a hacker?",
+                "Where can I hire a hacker?",
+                "Where can I find/employ a real hacker?"
+            ]
+        },
+        {
+            "input": "Have you ever lived with ghosts?",
+            "paraphrases": [
+                "Have you ever seen any ghost?",
+                "Have you ever seen a ghost?",
+                "Have you ever lived with ghosts?",
+                "Have you ever encountered a ghost?",
+                "Have you ever encountered any ghost?"
+            ]
+        },
+        {
+            "input": "How do I stop my dog from throwing up white foam?",
+            "paraphrases": [
+                "What causes a dog to throw up white liquid?",
+                "What should I do if my puppy throws up white foam?",
+                "What should I do if my dog is throwing up white foam?",
+                "Why is my dog dry heaving white foam?",
+                "What should I do if my dog is vomiting white foam?"
+            ]
+        },
+        {
+            "input": "Iran's Nuclear Program: Will President Donald Trump take decisive measures and end Iran's nuclear dream?",
+            "paraphrases": [
+                "How will President Trump shut down the Iran nuclear program?",
+                "Will Donald Trump end the Iran Nuclear Program?",
+                "Will Donald Trump end the Iran nuclear dream?",
+                "Will Donald Trump end Iran's nuclear program?",
+                "Will Trump be able to stop Iran's nuclear program?"
+            ]
+        },
+        {
+            "input": "What can somebody do that wants to become an entrepreneur but does not have an idea or capital?",
+            "paraphrases": [
+                "What can be the best idea to become an entrepreneur?",
+                "What can somebody do that wants to become an entrepreneur but doesn't have an idea or capital?",
+                "What should I do if I want to become an entrepreneur but I have no idea and capital?",
+                "What can somebody do that wants to become an entrepreneur but does not have an idea or capital?",
+                "What can I do if I want to become an entrepreneur but I don't have an idea or capital?"
+            ]
+        },
+        {
+            "input": "What are some interesting things to learn in psychology?",
+            "paraphrases": [
+                "What is the most interesting thing you learned in/about human psychology?",
+                "What are the best things to learn about psychology?",
+                "What are the best things to learn in psychology?",
+                "What are the most important things to learn in psychology?",
+                "What is the best way to learn psychology?"
+            ]
+        },
+        {
+            "input": "What is the chemical formula of methane?",
+            "paraphrases": [
+                "What's the chemical formula of Methane?",
+                "What is the chemical formula of methane?",
+                "What is the chemical formula of methane? How is this determined?",
+                "What is the chemical formula of methane? How is it determined?",
+                "What is the chemical formula for methane?"
+            ]
+        },
+        {
+            "input": "Will win the 2016 presidential race?",
+            "paraphrases": [
+                "Who will win the 2016 U.S. presidential election and why?",
+                "Who do you think is going to win the 2016 presidential election?",
+                "Who is going to win the 2016 presidential election?",
+                "Will Donald Trump or Hillary Clinton win the 2016 US presidential election?",
+                "Who is going to win the 2016 US presidential election? Why?"
+            ]
+        },
+        {
+            "input": "What are the basic points to keep in mind while starting a business?",
+            "paraphrases": [
+                "What are some of the basic things which must be kept in mind while doing business for the first time?",
+                "What are the basic things that one should keep in mind before starting a start up?",
+                "What are the basic things one should keep in mind before starting a start up?",
+                "What things should be in your mind while starting up a business?",
+                "What are the basic things one should keep in mind before starting a business?"
+            ]
+        },
+        {
+            "input": "Which is the best site to download TV Series?",
+            "paraphrases": [
+                "What are the sites to download TV series?",
+                "What is the best site to download TV series?",
+                "What are the best sites to download TV Series?",
+                "Which is the best site to download TV Series?",
+                "Which is the best site to watch TV series?"
+            ]
+        },
+        {
+            "input": "What are the best places to visit in Kanhangad, Kerala?",
+            "paraphrases": [
+                "What are some of the best places to visit in Kerala in a span of 5 days?",
+                "What are the best 10 places to visit in Kerala including any falls?",
+                "Which places should I visit if I am going to Kerala for a week with friends?",
+                "What are the places to visit in Kerala during September last and October 1st?",
+                "What are the best places to visit in Kerala in a span of 5 days?"
+            ]
+        },
+        {
+            "input": "Which friends do you think are the best - school friends or college friends?",
+            "paraphrases": [
+                "Is school friends are the best or colleges friends?",
+                "Which friend do you think is the best - school friends or college friends?",
+                "What are your best friends, school friends or college friends?",
+                "Which is the best, school friends or college friends?",
+                "Which is the best school friend or college friend?"
+            ]
+        },
+        {
+            "input": "Should I apply for pan card online or offline?",
+            "paraphrases": [
+                "I lost my PAN card a year back but I remember my PAN number. How can I apply for new PAN card with the same number?",
+                "How do I apply for pan card in bank?",
+                "How do I apply and receive pan card in 48 hours with new facilities?",
+                "How do I apply for pan card (lost)?",
+                "How do I apply online for a PAN card free of cost?"
+            ]
+        },
+        {
+            "input": "What's the Gameshark code for 99 Masterballs for Pokemon Fire Red?",
+            "paraphrases": [
+                "What's the Master Ball cheat code for Pokemon FireRed?",
+                "What is the code for Pokemon fire red?",
+                "What is the code for 99 masterballs in Pokémon GO?",
+                "What is the name of the game 99 Masterballs for Fire Red?",
+                "How do I get 99 Masterballs for Pokémon Fire Red?"
+            ]
+        },
+        {
+            "input": "What is the shortest answer with the highest number of upvotes on Quora?",
+            "paraphrases": [
+                "What are some of the shortest answers with the maximum upvotes on Quora?",
+                "What is the shortest answer with the maximum upvotes on Quora?",
+                "What is the shortest answer with the highest number of upvotes on Quora?",
+                "Which answer has the highest number of upvotes on Quora?",
+                "What is the most upvoted answer of all time on Quora?"
+            ]
+        },
+        {
+            "input": "What is the most painless and quick way to die?",
+            "paraphrases": [
+                "What is the easiest and most painless suicide method?",
+                "What is the most effective way to suicide?",
+                "What's the absolute easiest way to die?",
+                "What is the least painless way to commit suicide?",
+                "What is the best and painless way to commit suicide?"
+            ]
+        },
+        {
+            "input": "What features made the first iPhone so revolutionary?",
+            "paraphrases": [
+                "What did the first iPhone have that made it so novel?",
+                "What made the first iPhone so revolutionary?",
+                "What are the features of the first iPhone that made it revolutionary?",
+                "Why was the iPhone so revolutionary?",
+                "What are some features of the first iPhone?"
+            ]
+        },
+        {
+            "input": "Is Apple likely to release a dual-SIM iPhone?",
+            "paraphrases": [
+                "Would you like a dual sim Iphone? Why doesn't apple just do something innovative like adding a dual-sim option?",
+                "Will Apple launch a dual-SIM iPhone?",
+                "Will Apple release a dual-SIM iPhone?",
+                "Why doesn't Apple launch a dual SIM iPhone?",
+                "Will Apple launch a dual sim iPhone?"
+            ]
+        },
+        {
+            "input": "What is one thing you believe to be true that most do not?",
+            "paraphrases": [
+                "What is the character or theory that you believe to be true while most people don't? Why?",
+                "What is one thing you believe that most people believe is true?",
+                "What are some of the things you believe that most people don't?",
+                "What is one thing you believe that almost nobody agrees with you on?",
+                "What is one thing you believe that most people believe to be true?"
+            ]
+        },
+        {
+            "input": "What is the most disturbing dream you have had?",
+            "paraphrases": [
+                "What is the most bizarre dream you have ever had?",
+                "What is the most disturbing dream you have had?",
+                "What are the creepiest dreams you ever had?",
+                "What is the most disturbing dream you've ever had?",
+                "What is the scariest dream you've ever had?"
+            ]
+        },
+        {
+            "input": "What is the point in writing A2A when answering question on Quora on an answer?",
+            "paraphrases": [
+                "What is the benefit of saying A2A when answering a question except bragging?",
+                "What is A2A when answering questions on Quora?",
+                "Why do people write A2A when they answer a question on Quora?",
+                "What is the point of answering a question on Quora?",
+                "What is the point in writing A2A when answering a question on Quora?"
+            ]
+        },
+        {
+            "input": "What should I do to best utilize a shopify store I'm not using?",
+            "paraphrases": [
+                "What should I do to utilize a shopify store I'm not using?",
+                "What is the best way to utilize a Shopify store?",
+                "What are the best sites to use on Shopify?",
+                "What is the best way to use Shopify on a mobile phone?",
+                "What is the best way to use Shopify?"
+            ]
+        },
+        {
+            "input": "What do white american guys think of black american guys dating white american girls?",
+            "paraphrases": [
+                "I hear of this phenomenon white girls dating black american men. What do white girls think of black African men? (dating is far out of the question )",
+                "What do white American guys think about black American girls dating white American girls?",
+                "What do white people think about black people dating white people?",
+                "What do white americans think of black american guys dating white american girls?",
+                "What do white Americans think of black American girls?"
+            ]
+        },
+        {
+            "input": "Which is the most overrated Hollywood movie?",
+            "paraphrases": [
+                "What are the most overrated movies in Hollywood?",
+                "Which are the most overrated movies of Hollywood?",
+                "What are the most overrated Hollywood movies ever?",
+                "Which are the most overrated Hollywood movies to watch?",
+                "Which are the most overrated movies in Hollywood?"
+            ]
+        },
+        {
+            "input": "Given m and n are positive integers such that for some positive integer, x, [math]\\sqrt {x+43} =m[/math] and [math]\\sqrt {x+16} =n[/math], what is the value of the product mn as a positive integer?",
+            "paraphrases": [
+                "Given m and n are positive integers such that for some positive integer x, [math]\\sqrt{x+43}=m[/math] and [math]\\sqrt{x+16}=n[/math], what is the value of the product mn as a positive integer?",
+                "What is the value of a positive integer, x, [math]\\sqrt{x+43} =m[/math] and \\sqrt {x+16} =n[/math], given m as positive integer?",
+                "What is the value of the product mn as a positive integer?",
+                "Given m and n as positive integers such that for some positive integer, x, [math]\\sqrt {x+43} =m[/math] and what is the value of the product mn as a positive integer?",
+                "What is the value of [math]\\sqrt{x+43}[/math] for a positive integer?"
+            ]
+        },
+        {
+            "input": "Which are the top places to visit in Kerala?",
+            "paraphrases": [
+                "What are the top 5 must-visit places in Kerala before one dies?",
+                "What are the best 10 places to visit in Kerala including any falls?",
+                "What are the best places to visit on a 3-day trip in and around Kerala?",
+                "What are the best places to visit in Kerala for 3 to 4 days?",
+                "What are the best places to visit in Kerala in a span of 5 days?"
+            ]
+        },
+        {
+            "input": "What are some of the best novels that should be read by everyone?",
+            "paraphrases": [
+                "What are some of the best novels everyone should read?",
+                "What are some good novels to read?",
+                "What are some of the best novels you have read?",
+                "What are some of the best novels of all time?",
+                "What are the best novels ever?"
+            ]
+        },
+        {
+            "input": "What was the story behind Veerappan?",
+            "paraphrases": [
+                "What's the story behind Veerappan's Encounter?",
+                "What is the story behindVeerappan?",
+                "What is the story behind Veerappan?",
+                "What is the story behind the movie Veerappan?",
+                "What is the real story behind Veerappan?"
+            ]
+        },
+        {
+            "input": "If energy is not conserved in an expanding universe, can infinite energy be created? Is it potential energy or potentiality infinite?",
+            "paraphrases": [
+                "If dark energy is being created with expansion can infinite of it be created?",
+                "How is dark/vacuum energy created with the universe conserved if it is not conserved? Can infinite of these be created?",
+                "If energy is created and not conserved in an expanding universe (that expands without limit) can infinite energy be created then?",
+                "If infinite (dark) energy can appear with expansion, is it infinite? Or at least potentially infinite?",
+                "If universe expands and vacuum energy is created with it (with no limit),is there infinite potential energy or potentiality infinite?"
+            ]
+        },
+        {
+            "input": "Will time travel be possible in the next 10 years?",
+            "paraphrases": [
+                "Is time travel theoretically possible?",
+                "Will time travel be possible in the next 10 years?",
+                "Is it possible to travel time with real life?",
+                "Is time travel still theorized as being possible?",
+                "Is time travel possible then after how long time?"
+            ]
+        },
+        {
+            "input": "What would be the best way to control anger?",
+            "paraphrases": [
+                "How do you control your anger?",
+                "What should I do for controlling anger?",
+                "What should I do to overcome my anger?",
+                "How do I control my emotions and anger?",
+                "What is the best way to control your anger?"
+            ]
+        },
+        {
+            "input": "How i get payment gateway for credit card or debit card processing?",
+            "paraphrases": [
+                "How is the payment processing for a credit card?",
+                "How I get payment gateway for credit card or debit card processing?",
+                "How do I get payment gateway for credit card or debit card processing?",
+                "What is the best way to get a debit card or a credit card?",
+                "How can I get a payment gateway for a credit card?"
+            ]
+        },
+        {
+            "input": "What is the best way to reduce abdominal fat?",
+            "paraphrases": [
+                "Whats the best way to reduce belly fat?",
+                "How can I reduce my belly fat in 2 months?",
+                "What are the best exercises to burn belly fat?",
+                "How do I reduce belly and chest fat?",
+                "How can I reduce my Belly and tummy fat?"
+            ]
+        },
+        {
+            "input": "Is it good for your health to drink your morning urine?",
+            "paraphrases": [
+                "Is it safe to drink one's own urine?",
+                "Is drinking your own urine good for health?",
+                "Is drinking your morning urine good for health?",
+                "Is it good to drink your morning urine?",
+                "Is it healthy to drink your urine every morning?"
+            ]
+        },
+        {
+            "input": "What Pakistanis think about India's surgical strike on Pakistan?",
+            "paraphrases": [
+                "What Pakistanis think about surgical strikes in Azad Kashmir or POK?",
+                "What do Pakistanis think of surgical strike against India by Indian army?",
+                "What do Pakistani residents think of surgical strike by Indian Army?",
+                "What is your view/opinion about surgical strike by the Indian Army?",
+                "What do Pakistanis think about India’s surgical strike on Pakistan?"
+            ]
+        },
+        {
+            "input": "What is the best place to get a certification in Agile Project Management in Toronto?",
+            "paraphrases": [
+                "Which is the best place to get a certification in Agile project management in Toronto?",
+                "What is the best place to get a certification for Agile Project Management in Toronto?",
+                "Where is the best place to get a certification in Agile Project Management in Toronto?",
+                "Which is the best institute for Agile Project Management in Toronto?",
+                "What is the best place to get certification in Agile Project Management in Toronto?"
+            ]
+        },
+        {
+            "input": "Is Barack Obama a good president?",
+            "paraphrases": [
+                "Was/Is Barack Obama a bad/good president?",
+                "Has Barack Obama been a good president?",
+                "Has Barack Obama been a good president overall?",
+                "Has Obama been a bad president?",
+                "Is Barack Obama a good president?"
+            ]
+        },
+        {
+            "input": "Do you think corruption and black money would spread even faster with the introduction of 2000 rupee and new 500 rupee notes?",
+            "paraphrases": [
+                "Do you think the 2000 rupee notes will increase black money?",
+                "What are your views on demonetization of 500 and 1000 rupee notes by the Modi Government?",
+                "What are the repercussions of 500 and 1000 rupee notes not being legal tender anymore?",
+                "How much black money will be controlled by banning Rs 500 and Rs 1000 note?",
+                "How is black money gonna go off with no longer the use of same 500 and 1000 notes?"
+            ]
+        },
+        {
+            "input": "How can a boy become the world's youngest billionaire?",
+            "paraphrases": [
+                "Who is the youngest person to become a billionaire?",
+                "How do I become the youngest billionaire in the world?",
+                "Who is the youngest billionaire in the world?",
+                "How do I become the world's youngest billionaire?",
+                "How can I become the world's youngest billionaire?"
+            ]
+        },
+        {
+            "input": "How can I legitimately earn online?",
+            "paraphrases": [
+                "How do I legitimately earn online?",
+                "How can I earn online?",
+                "What is the best way to earn money online?",
+                "What is the easiest way to earn online?",
+                "What is the best way to earn online?"
+            ]
+        },
+        {
+            "input": "Will there be a nuclear war between India and Pakistan?",
+            "paraphrases": [
+                "If war happen between India and Pakistan, then what could be the impact on Indian economy and stock market?",
+                "What will be the disaster effect, if nuclear war breaks out between India and Pakistan?",
+                "Will war happen between India and Pakistan?",
+                "What will be the effect of possible war between India and Pakistan on Indian Stock market?",
+                "What are chances of another war between India and Pakistan?"
+            ]
+        },
+        {
+            "input": "How can I build traffic for my website?",
+            "paraphrases": [
+                "What is the best way to get traffic on your website?",
+                "How do I get more traffic to my site?",
+                "How can I drive more traffic to my website?",
+                "How can I increase traffic very soon on my blog?",
+                "How can I increase the traffic on my website?"
+            ]
+        },
+        {
+            "input": "Do you really believe that \"jo hota hai acche ke liye hota hai\" meaning \"everything happens for a good purpose\" ?",
+            "paraphrases": [
+                "Philosophy of Everyday Life: \"All that happens actually happens for good (Jo hota hai achhe ke liye hota hai)\", Is it really so?",
+                "Do you really believe that \"jo hota hai acche ke liye hota hi\" meaning \"everything happens for a good purpose\"?",
+                "Do you really believe that \"jo hota hai acche ke liye hota ai\" meaning \"everything happens for a good purpose\"?",
+                "Do you really believe that \"jo hota hai acche ke liye hota hilei\"?",
+                "Do you really believe that \"jo hota hai acche ke liye hota hi\" meaning everything happens for a good purpose?"
+            ]
+        },
+        {
+            "input": "How does the Earth move through and curve spacetime without displacing it?",
+            "paraphrases": [
+                "How is spacetime curved if it isn't also displaced? How does the Earth move through and curve spacetime without displacing it?",
+                "How does the Earth move through spacetime without displacement?",
+                "How does earth move through spacetime without displacing it?",
+                "How does the Earth move through spacetime?",
+                "How does the Earth curve spacetime?"
+            ]
+        },
+        {
+            "input": "How can covalent bonds be described?",
+            "paraphrases": [
+                "What is covalent bonding?",
+                "What is a Covalent bond?",
+                "What are covalent bonds? How are they formed?",
+                "What are covalent bonds? How do they occur?",
+                "What is the meaning of covalent bond?"
+            ]
+        },
+        {
+            "input": "What are some well known and widely believed events in history, that most likely never happened?",
+            "paraphrases": [
+                "What are the most widely believed lies in history?",
+                "What are some of the most mind-blowing events in history that most likely never happened?",
+                "What are some facts about history that most people don't know?",
+                "What are some events that most likely never have happened in history?",
+                "What are some of the most well known events in history that most likely never happened?"
+            ]
+        },
+        {
+            "input": "Is it possible to travel time with real life?",
+            "paraphrases": [
+                "What is the possibility of time travel becoming a reality?",
+                "Will time travel be possible in the next 10 years?",
+                "Is it physically possible to travel back in time?",
+                "Is time travel still theorized as being possible?",
+                "Is time travel possible then after how long time?"
+            ]
+        },
+        {
+            "input": "How can I lose weight at age 55?",
+            "paraphrases": [
+                "What is the best way to be in a calorie deficit and lose weight successfully?",
+                "How can I lose weight effectively?",
+                "How do I lose weight without quitting?",
+                "How do I lose weight from 70 to 50?",
+                "How do I lose weight ayurvedically?"
+            ]
+        }
+    ]
+}

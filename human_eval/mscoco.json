@@ -1,0 +1,1011 @@
+{
+    "checkpoints": [
+        "mscoco_Ref",
+        "bart_mscoco_1gen",
+        "bart_mscoco_1gen_2gen+triecl",
+        "bart_mscoco_1gen_2gen+brio",
+        "bart_mscoco_1gen_2gen+mrt"
+    ],
+    "data": [
+        {
+            "input": "A man who is looking at a baseball bat.",
+            "paraphrases": [
+                "A man looking down at a baseball bat that he is holding in his hands",
+                "A man holding a baseball bat on top of a field.",
+                "A baseball player holding a bat on a field.",
+                "A baseball player holding a bat on top of a field.",
+                "A baseball player holding a bat next to home plate."
+            ]
+        },
+        {
+            "input": "A rowboat with paddles and no passengers is on the beach.",
+            "paraphrases": [
+                "Row boat at the beach's edge ready to go.",
+                "A boat that is sitting in the sand.",
+                "A boat that is sitting on a beach.",
+                "A boat sitting on top of a beach next to the ocean.",
+                "A boat sitting on top of a sandy beach next to the ocean."
+            ]
+        },
+        {
+            "input": "A bunch of boxes that have fruit inside of them.",
+            "paraphrases": [
+                "Boxes of fruit displayed at an open air market.",
+                "A display case filled with lots of different types of fruit.",
+                "A couple of boxes filled with lots of fruit.",
+                "A bunch of boxes filled with different types of fruit.",
+                "A box filled with lots of different types of fruit."
+            ]
+        },
+        {
+            "input": "A boy is riding a skateboard on a ramp.",
+            "paraphrases": [
+                "A boy doing a trick on a skateboard on a ramp.",
+                "A young man riding a skateboard up the side of a ramp.",
+                "A man riding a skateboard down the side of a ramp.",
+                "A man riding a skateboard up the side of a ramp.",
+                "A young man riding a skateboard down the side of a ramp."
+            ]
+        },
+        {
+            "input": "A very tall church with a clock below a tower.",
+            "paraphrases": [
+                "A spire over a beautiful brick building behind red tiled roofs.",
+                "A very tall building with a clock on it.",
+                "A tall building with a clock on the top of it.",
+                "A very tall church tower with a clock on it.",
+                "A church tower with a clock on the top of it."
+            ]
+        },
+        {
+            "input": "A colorful truck is driving with a full load of sticks and twigs.",
+            "paraphrases": [
+                "a big truck with some branches in the back of it",
+                "A truck that is driving down the street.",
+                "A truck that is driving down the road.",
+                "A truck with a lot of sticks in the back.",
+                "A truck driving down a street next to a forest."
+            ]
+        },
+        {
+            "input": "A bride and groom cutting their wedding cake.",
+            "paraphrases": [
+                "A woman in a white dress and a man in gray stand near a cake on a white table under a white canopy.",
+                "A bride and groom cutting their wedding cake.",
+                "A newly married couple cutting a wedding cake.",
+                "A bride and groom are cutting their wedding cake.",
+                "A bride and groom cut their wedding cake."
+            ]
+        },
+        {
+            "input": "A woman is carrying many packages in an office building",
+            "paraphrases": [
+                "this is a woman pushing some luggage at the airport",
+                "A woman walking down a street carrying a bag of luggage.",
+                "A woman that is standing in front of a desk.",
+                "A woman standing in front of a pile of boxes.",
+                "A woman holding a bunch of boxes in her hands."
+            ]
+        },
+        {
+            "input": "A man in blue shorts putting together a blue and purple kite on a blue towel at the beach. ",
+            "paraphrases": [
+                "A man kneels on the beach preparing a kite.",
+                "A man standing on a beach holding a kite.",
+                "A man putting together a kite on a beach.",
+                "A man that is standing in the sand with a kite.",
+                "A man standing on a beach holding a blue and purple kite."
+            ]
+        },
+        {
+            "input": "a bunch of pizzas are on display under a case",
+            "paraphrases": [
+                "A buffet display case filled with lots of pizzas on pans.",
+                "A display case filled with lots of pizzas.",
+                "a couple of pizzas are on display in a case",
+                "A table topped with lots of different types of pizzas.",
+                "A display case filled with lots of different types of pizza."
+            ]
+        },
+        {
+            "input": "A white statue holding open a newspaper while sitting on a bench.",
+            "paraphrases": [
+                "A sculpture of a man reading a newspaper sitting at a bench.",
+                "A statue of a man sitting on a bench holding a newspaper.",
+                "A statue sitting on top of a wooden bench.",
+                "A statue that is sitting on a bench.",
+                "A statue sitting on a bench holding a newspaper."
+            ]
+        },
+        {
+            "input": "Three birds walking around a dry grass field.",
+            "paraphrases": [
+                "Three wild turkeys on top of the dried pasture.",
+                "A group of birds that are standing in the grass.",
+                "A group of birds standing on top of a dry grass field.",
+                "A couple of birds standing on top of a grass covered field.",
+                "A group of three birds standing on top of a lush green field."
+            ]
+        },
+        {
+            "input": "A street scene with a person on a motorcycle.",
+            "paraphrases": [
+                "People at a veggie and fruit market looking at the merchandise.",
+                "a person riding a motorcycle on a city street",
+                "A man riding a motorcycle down a street.",
+                "A man riding on the back of a motorcycle.",
+                "A man riding a motorcycle down a street next to tall buildings."
+            ]
+        },
+        {
+            "input": "A living room has a fireplace and a piano.",
+            "paraphrases": [
+                "a fireplace a table couch piano lights and a picture",
+                "A living room filled with furniture and a fire place.",
+                "A living room with a fireplace and a flat screen TV.",
+                "A living room filled with furniture and a piano.",
+                "A living room filled with furniture and a fireplace."
+            ]
+        },
+        {
+            "input": "A tourist unfolds an umbrella near ancient ruins.",
+            "paraphrases": [
+                "Two men on old architecture pull out umbrella and securing their belongings.",
+                "A person walking down a street with an umbrella.",
+                "A person with an umbrella standing in front of a building.",
+                "A group of people standing next to each other under an umbrella.",
+                "A group of people standing on top of a lush green field."
+            ]
+        },
+        {
+            "input": "a sleeping child in a bed with a black and white cover",
+            "paraphrases": [
+                "Child in bed covered with a flower patterned blanket.",
+                "A small child is sleeping in a bed.",
+                "A child in a bed with a black and white comforter.",
+                "A young child laying in a bed with a black and white blanket.",
+                "A young child laying in a bed covered in a blanket."
+            ]
+        },
+        {
+            "input": "a boy making a face while running to get his kite in the air",
+            "paraphrases": [
+                "A boy running while holding onto a kite string.",
+                "A young boy is flying a kite in a park.",
+                "A boy is running with a kite in hand.",
+                "A young boy flying a kite in a park.",
+                "A young boy flying a kite in a field."
+            ]
+        },
+        {
+            "input": "a little teddy bear dressed in some BDSM gear and chains ",
+            "paraphrases": [
+                "A stuffed bear that is wearing a mask.",
+                "A teddy bear dressed in black and white.",
+                "A teddy bear that is dressed in a costume.",
+                "A brown teddy bear sitting on top of a wooden floor.",
+                "A teddy bear sitting on top of a wooden floor."
+            ]
+        },
+        {
+            "input": "Baseball player runs toward base while others stand around",
+            "paraphrases": [
+                "The man is running during a baseball game.",
+                "A group of men on a field playing baseball.",
+                "some baseball players are playing baseball on a field",
+                "A group of baseball players playing a game of baseball.",
+                "A baseball player running across a baseball field."
+            ]
+        },
+        {
+            "input": "A woman in tight blue jeans standing next to a brown horse.",
+            "paraphrases": [
+                "A pretty young woman is posing with her horse.",
+                "A woman standing next to a brown horse.",
+                "A woman is standing next to a horse.",
+                "A woman that is standing next to a horse.",
+                "A woman standing next to a brown horse on a field."
+            ]
+        },
+        {
+            "input": "Many people standing in a field flying kites.",
+            "paraphrases": [
+                "A group of people in a field with various kites in the sky.",
+                "A group of people in a field flying kites.",
+                "A group of people flying kites in a field.",
+                "A crowd of people standing in a field flying kites.",
+                "A crowd of people flying kites in a field."
+            ]
+        },
+        {
+            "input": "The photo of the double parking meter has a blurry city in the background.",
+            "paraphrases": [
+                "Two parking meters with the light of the sunset reflecting off one.",
+                "a close up of a parking meter on a city street",
+                "A parking meter with a city skyline in the background.",
+                "A couple of parking meters sitting next to each other.",
+                "Two parking meters sitting on the side of a street."
+            ]
+        },
+        {
+            "input": "The brown fuzzy dog has round blue eyes.",
+            "paraphrases": [
+                "A dog sits near books with a shirt on.",
+                "A dog that is laying down in the grass.",
+                "A dog that is laying down on the floor.",
+                "A brown dog sitting on top of a wooden floor.",
+                "A brown and white dog laying on top of a bed."
+            ]
+        },
+        {
+            "input": "A person in the process of sheering a woolen animal.",
+            "paraphrases": [
+                "A person sheering the wool off a sheep.",
+                "a close up of a person shearing a sheep",
+                "A woman shearing a sheep in a barn.",
+                "A woman shearing a sheep in a field.",
+                "A woman shearing a sheep with a pair of scissors."
+            ]
+        },
+        {
+            "input": "There is a bike that is parked by a bench, and an airplane that is high in the sky",
+            "paraphrases": [
+                "An airplane flies by a bicycle leaned up against a bench",
+                "A bicycle is parked in front of a park bench.",
+                "A bicycle is parked in front of a bench.",
+                "A bicycle that is sitting next to a bench.",
+                "A bicycle parked next to a bench in front of an airplane."
+            ]
+        },
+        {
+            "input": "A 787 airplane is landing at the airport.",
+            "paraphrases": [
+                "A blue a white plane flying through the air.",
+                "A large jetliner flying through a cloudy sky.",
+                "A large jetliner flying through a blue sky.",
+                "A large jetliner sitting on top of an airport runway.",
+                "A large jetliner sitting on top of an airport t tarmac."
+            ]
+        },
+        {
+            "input": "A tall church tower sitting on the side of a road.",
+            "paraphrases": [
+                "A church steeple is shown amidst telephone wires and lights.",
+                "A street scene with focus on a tall clock tower.",
+                "A large clock tower sitting on the side of a road.",
+                "A tall church tower sitting on the side of a street.",
+                "A tall church tower sitting on the side of a road."
+            ]
+        },
+        {
+            "input": "The couple are getting ready to cut the cake. ",
+            "paraphrases": [
+                "Two woman and a man pose for a picture while one woman cuts a cake",
+                "A bride and groom getting ready to cut their wedding cake.",
+                "A bride and groom cutting a wedding cake.",
+                "A man and a woman getting ready to cut a cake.",
+                "A man and a woman standing in front of a cake."
+            ]
+        },
+        {
+            "input": "A man with thick sunglasses and multiple piercings sits with his mouth open.",
+            "paraphrases": [
+                "A man in a suite wearing a pair of sunglasses.",
+                "a close up of a person wearing a pair of sunglasses",
+                "a close up of a person wearing a suit and tie",
+                "A man sitting in a chair with his mouth open.",
+                "A man sitting in a chair with his mouth wide open."
+            ]
+        },
+        {
+            "input": "A man rides his skateboard near a drain pipe system. ",
+            "paraphrases": [
+                "a boy on a skate board riding on concrete",
+                "A man that is standing on a skateboard.",
+                "A man that is on a skateboard in the air.",
+                "A man riding a skateboard next to a drain pipe.",
+                "A man riding a skateboard down the side of a cement ramp."
+            ]
+        },
+        {
+            "input": "A shot of a road in a city with a no peddling sign.",
+            "paraphrases": [
+                "People are walking on a sidewalk near a sign that says no peddling.",
+                "A street scene with focus on a no peddling sign.",
+                "A no peddling sign sitting on the side of a road.",
+                "A no peddling sign sitting on the side of a street.",
+                "A street sign on the corner of a city street."
+            ]
+        },
+        {
+            "input": "A room with many medical supplies in it. ",
+            "paraphrases": [
+                "Panoramic view of a hospital room with medical machines and a woman lying in hospital bed.",
+                "A room filled with lots of medical equipment.",
+                "A room with a bed, a desk and a television.",
+                "A room filled with lots of different types of medical equipment.",
+                "The room is clean and ready to be used."
+            ]
+        },
+        {
+            "input": "A white horse is out eating in a field",
+            "paraphrases": [
+                "a white horse grazing on some vegetation",
+                "A white horse eating grass in a field.",
+                "A horse that is standing in the grass.",
+                "A white horse standing on top of a lush green field.",
+                "A white horse grazing on a lush green field."
+            ]
+        },
+        {
+            "input": "An orange fire hydrant with a face and bow tie drawn on it. ",
+            "paraphrases": [
+                "A fire hydrant with graffiti that makes it appear to be smiling mischievously.",
+                "A fire hydrant with a face drawn on it.",
+                "An orange fire hydrant with a face drawn on it.",
+                "A red and white fire hydrant with a bow tie on it.",
+                "A red fire hydrant with a bow tie on it."
+            ]
+        },
+        {
+            "input": "A room with an empty and open refrigerator and a shelf of bottles.",
+            "paraphrases": [
+                "A room with an open refrigerator and shelves with jars on it.",
+                "An empty refrigerator with its door open in a kitchen.",
+                "A refrigerator filled with lots of bottles of beer.",
+                "A white refrigerator freezer sitting inside of a kitchen.",
+                "A white refrigerator freezer sitting inside of a room."
+            ]
+        },
+        {
+            "input": "A double-decker bus is parked in a large field.",
+            "paraphrases": [
+                "We see a double decker bus wit a compartment in the side.",
+                "A red double decker bus is parked in a field.",
+                "A double decker bus is parked in a field.",
+                "A red double decker bus parked in a field.",
+                "A red and white double decker bus parked in a field."
+            ]
+        },
+        {
+            "input": "Someone has crawled under the plane to check that everything is operational.",
+            "paraphrases": [
+                "a small plane is sitting on a runway",
+                "A plane that is flying in the sky.",
+                "A large jetliner sitting on top of an airport.",
+                "A plane sitting on top of an airport tarmac.",
+                "A large jetliner sitting on top of an airport tarmac."
+            ]
+        },
+        {
+            "input": "A wooden door in front of an entrance next to a black cat.",
+            "paraphrases": [
+                "a cat that is sitting outside a door",
+                "A black cat laying on the ground next to a door.",
+                "A cat that is standing in front of a door.",
+                "A black cat standing next to a wooden door.",
+                "A black and white cat sitting in front of a door."
+            ]
+        },
+        {
+            "input": "A very green hillside in the day time.",
+            "paraphrases": [
+                "A scenic view of a valley with mountains in the distance.",
+                "A man riding a skateboard down a snow covered slope.",
+                "A group of people riding skis down a snow covered slope.",
+                "A group of people standing on top of a lush green hillside.",
+                "A group of people standing on top of a lush green field."
+            ]
+        },
+        {
+            "input": "A large glass vase with leaves painted on it's sides.",
+            "paraphrases": [
+                "A large glass jar sitting on a table .",
+                "A vase with flowers in it sitting on a table.",
+                "A vase that has leaves painted on it.",
+                "a close up of a vase with leaves on it",
+                "A vase sitting on top of a wooden table."
+            ]
+        },
+        {
+            "input": "Men climbing on board a bus that needs to be repaired.",
+            "paraphrases": [
+                "A group of people in blue jackets boarding a long white bus.",
+                "Two men are climbing up the side of a bus.",
+                "A group of men climbing up the side of a bus.",
+                "A group of people standing on top of a bus.",
+                "A group of people that are standing on a bus."
+            ]
+        },
+        {
+            "input": "a home bar with different drink ingredients under a large decorative sign saying, \"PUB\".",
+            "paraphrases": [
+                "A sign with the word \"Pub\" hangs above several liquor bottles.",
+                "A wooden table topped with lots of different types of drinks.",
+                "A bar with a sign that says \"PuB\".",
+                "A bar with a large sign in the background.",
+                "A table topped with lots of different types of drinks."
+            ]
+        },
+        {
+            "input": "The person is holding a treat for the cats.",
+            "paraphrases": [
+                "Two cats in front of a woman holding something in her hand, one of the cats is reaching for it with its paws.",
+                "A person holding a doughnut in front of two cats.",
+                "A person holding a donut in their hand.",
+                "A person holding a doughnut in their hand.",
+                "A black and white cat laying on top of a table."
+            ]
+        },
+        {
+            "input": "a couple of buckets in a white room",
+            "paraphrases": [
+                "This picture looks like a janitors closet with buckets on the floor.",
+                "A couple of buckets filled with water sitting on a floor.",
+                "A bathroom with a toilet and a sink.",
+                "A couple of white buckets sitting next to each other.",
+                "A couple of buckets sitting on top of a wooden floor."
+            ]
+        },
+        {
+            "input": "A bathroom with a white toilet and a sink net to a shower.",
+            "paraphrases": [
+                "Bathroom with orange shower and mirror/cabinet curtains",
+                "A white toilet sitting next to a white sink.",
+                "A bathroom with a toilet, sink and shower.",
+                "A bathroom with a toilet, sink, and shower.",
+                "A white toilet sitting in a bathroom next to a sink."
+            ]
+        },
+        {
+            "input": "A little girl puts her hand in a pasta dish. ",
+            "paraphrases": [
+                "a young girl making a plate of food",
+                "A little girl sitting in front of a plate of food.",
+                "A young girl putting her hand in a plate of food.",
+                "A little girl putting her hand in a pasta dish.",
+                "A little girl sitting at a table with a bowl of pasta."
+            ]
+        },
+        {
+            "input": "A row of various types of chairs and umbrella with a bridge in the background.",
+            "paraphrases": [
+                "two people riding a motorcycle with chairs and umbrellas near by",
+                "A group of chairs and umbrellas in front of a building.",
+                "A long row of chairs and an umbrella on a bridge.",
+                "A group of chairs and umbrellas in front of a bridge.",
+                "A group of chairs and umbrellas sitting under a bridge."
+            ]
+        },
+        {
+            "input": "A couple of women and one man kneeling down before two horses.",
+            "paraphrases": [
+                "A couple of horses in what appears to be a circus.",
+                "a couple of people that are next to some horses",
+                "A man kneeling next to two horses in a field.",
+                "A group of people standing next to two horses.",
+                "A couple of people standing next to two horses."
+            ]
+        },
+        {
+            "input": "A little boy is playing with a suitcase.",
+            "paraphrases": [
+                "a small boy with a bag of luggage",
+                "A young boy playing with a piece of luggage.",
+                "A young boy is playing with a suitcase.",
+                "A young boy standing next to a piece of luggage.",
+                "A little boy standing next to a piece of luggage."
+            ]
+        },
+        {
+            "input": "Half a dozen donuts are sitting in a box.",
+            "paraphrases": [
+                "The six donuts are made with various seasonings.",
+                "A box filled with donuts on top of a table.",
+                "A box filled with lots of different kinds of donuts.",
+                "A box filled with different types of donuts.",
+                "A box filled with donuts sitting on top of a table."
+            ]
+        },
+        {
+            "input": "Elephant displayed in window of city building near roadway.",
+            "paraphrases": [
+                "The view of an elephant's head through a display window.",
+                "An elephant is sitting in the window of a building.",
+                "An elephant statue in the window of a building.",
+                "An elephant that is standing in the street.",
+                "An elephant sitting in the window of a building."
+            ]
+        },
+        {
+            "input": "A teddy bear under some furniture that appears to be turned on it's side.",
+            "paraphrases": [
+                "Teddy bear on the floor in an up ended table.",
+                "A teddy bear that is sitting on the ground.",
+                "A brown teddy bear sitting in the corner of a room.",
+                "A brown teddy bear sitting on top of a wooden floor.",
+                "A brown teddy bear sitting on top of a couch."
+            ]
+        },
+        {
+            "input": "Man and woman holding a knife up to a small cake. ",
+            "paraphrases": [
+                "A bride and groom cutting a wedding cake.",
+                "A man and woman standing in front of a cake.",
+                "A man and woman cutting a cake together.",
+                "A man and a woman holding a knife up to a cake.",
+                "A man and a woman standing in front of a cake."
+            ]
+        },
+        {
+            "input": "a person with a shopping cart on a city street ",
+            "paraphrases": [
+                "People are walking on the street by a homeless person.",
+                "A man walking down the street with a shopping cart.",
+                "A man pushing a shopping cart down a street.",
+                "A man walking down a street with a shopping cart.",
+                "A woman walking down a street with a shopping cart."
+            ]
+        },
+        {
+            "input": "a black table and stools sitting next to two windows with shutters",
+            "paraphrases": [
+                "A small bar table and stools set up in the corner of a living room by windows",
+                "A wooden table with two stools in front of a window.",
+                "A room with a table, chairs and a window.",
+                "A living room filled with furniture and a TV.",
+                "A wooden table sitting in a room next to a window."
+            ]
+        },
+        {
+            "input": "A man riding a motorcycle on the side of a road.",
+            "paraphrases": [
+                "A man parked his motorcycle on the side of the road.",
+                "a person riding a motorcycle on a city street",
+                "A man riding a motorcycle down a street.",
+                "A man riding on the back of a motorcycle.",
+                "A man riding a motorcycle on the side of a road."
+            ]
+        },
+        {
+            "input": "A wooden desk with shelves that have action figures above it",
+            "paraphrases": [
+                "A wooden desk topped with a laptop and monitor.",
+                "A computer desk topped with a computer monitor.",
+                "A wooden table topped with lots of different types of toys.",
+                "A computer desk topped with two computer monitors.",
+                "A computer desk topped with a computer mouse and a keyboard."
+            ]
+        },
+        {
+            "input": "an  image of two people playing video games",
+            "paraphrases": [
+                "A man and a boy hold video controllers on opposite sides of a dining table containing a projector.",
+                "A man and woman playing Wii in a living room.",
+                "A man and a woman are playing a video game.",
+                "A man and a woman playing a video game.",
+                "A man and a woman playing a game with remote controllers."
+            ]
+        },
+        {
+            "input": "A pair of girls are cooking in one pan together.",
+            "paraphrases": [
+                "Two preteens standing at the stove cooking green beans.",
+                "A couple of women standing in front of a stove.",
+                "A couple of women standing next to each other.",
+                "A couple of women standing in a kitchen preparing food.",
+                "A couple of women that are standing in a pan."
+            ]
+        },
+        {
+            "input": "A little kid that is playing with stuff.",
+            "paraphrases": [
+                "A boy hangs up paper kites on a string.",
+                "A young boy is playing with toys on the floor.",
+                "A young boy is playing with a teddy bear.",
+                "A young child is playing with a frisbee.",
+                "A little girl standing in a room with a stuffed animal."
+            ]
+        },
+        {
+            "input": "A beach chair and umbrella sit for another day at the beach.",
+            "paraphrases": [
+                "A beach chair with an umbrella on a beach by the water.",
+                "A beach chair and umbrella on a sunny day.",
+                "A beach chair sitting on top of a sandy beach.",
+                "A chair and an umbrella on a beach.",
+                "A beach chair and an umbrella on a beach."
+            ]
+        },
+        {
+            "input": "A street going trough the center of a small town.",
+            "paraphrases": [
+                "A quiet city street shows buildings, cars, and people.",
+                "A street filled with lots of traffic surrounded by tall buildings.",
+                "A city street filled with lots of traffic.",
+                "A street filled with lots of traffic next to a tall building.",
+                "A city street filled with lots of tall buildings."
+            ]
+        },
+        {
+            "input": "A white toilet and cup in a room.",
+            "paraphrases": [
+                "A cup and a plate with food on it on a table next to a toilet.",
+                "A white toilet sitting in a bathroom next to a sink.",
+                "A bathroom with a toilet and a sink.",
+                "A white toilet sitting next to a toilet paper roller.",
+                "A white toilet sitting next to a white sink."
+            ]
+        },
+        {
+            "input": "a man wearing an orange shirt holding up a tiny kite",
+            "paraphrases": [
+                "The man is holding an object in his hand.",
+                "A man is holding a kite in his hand.",
+                "A man that is holding a kite in his hand.",
+                "A man in an orange shirt holding a kite.",
+                "A man standing in a field holding a kite."
+            ]
+        },
+        {
+            "input": "A woman with a book bag sits on a ledge with her cell phone.",
+            "paraphrases": [
+                "A girl is sitting on a brick wall using her cell phone.",
+                "A woman sitting on a ledge looking at her cell phone.",
+                "a person sitting on a ledge with a cell phone",
+                "A woman sitting on a ledge talking on her cell phone.",
+                "A woman sitting on a bench talking on a cell phone."
+            ]
+        },
+        {
+            "input": "A couple of blocks of chocolate sitting next to bananas and pudding.",
+            "paraphrases": [
+                "a table that has some bananas and a cup on it",
+                "A couple of blocks of chocolate next to some bananas.",
+                "a close up of a plate of food on a table",
+                "A couple of blocks of chocolate sitting next to bananas.",
+                "A white plate topped with chocolate and banana slices."
+            ]
+        },
+        {
+            "input": "The group paddles the boat down on the water.",
+            "paraphrases": [
+                "A long canoe paddled along by a large group of people.",
+                "A group of people riding on the back of a boat.",
+                "A group of people on a boat in the water.",
+                "A group of people riding on top of a boat in the ocean.",
+                "A group of people that are in a boat in the water."
+            ]
+        },
+        {
+            "input": "Three yellow coach buses parked in a line.",
+            "paraphrases": [
+                "The reflection of a large metal structure in the windshield of a bus",
+                "Three yellow buses are parked in a parking lot.",
+                "A group of yellow buses parked next to each other.",
+                "Three yellow buses are lined up in a parking lot.",
+                "Three buses parked next to each other in a parking lot."
+            ]
+        },
+        {
+            "input": "A parking lot is on the side of the ocean.",
+            "paraphrases": [
+                "An assortment of street lights and signs next to an ocean.",
+                "A parking lot on the side of a beach.",
+                "A parking lot filled with lots of different types of cars.",
+                "A parking lot with cars parked on the side of the road.",
+                "A parking lot on a beach next to the ocean."
+            ]
+        },
+        {
+            "input": "A hot dog with mustard is next to a bottle of soda.",
+            "paraphrases": [
+                "A hot dog and bubble up drink on a table.",
+                "A hot dog with mustard and ketchup next to a bottle of soda.",
+                "A hot dog on a plate next to a bottle of soda.",
+                "A hot dog and a bottle of soda on a table.",
+                "A hot dog and a bottle of coke on a table."
+            ]
+        },
+        {
+            "input": "Two horses plowing the land as a man directs them",
+            "paraphrases": [
+                "Some horses are being led In a field",
+                "A man is directing two horses to plow the field.",
+                "Two horses are pulling a wagon full of hay.",
+                "Two horses that are standing in the grass.",
+                "A couple of brown horses standing on top of a field."
+            ]
+        },
+        {
+            "input": "Two surfers in wetsuits carrying surfboards along the beach.",
+            "paraphrases": [
+                "Two surfers walking on a beach to the ocean.",
+                "Two surfers carrying their surfboards on the beach.",
+                "Two people in wetsuits carrying surfboards on a beach.",
+                "A couple of people carrying surfboards on a beach.",
+                "A couple of people walking across a beach holding surfboards."
+            ]
+        },
+        {
+            "input": "Someone is standing near a train that is parked. ",
+            "paraphrases": [
+                "a person standing next to a green and black train",
+                "A train that is sitting on the tracks.",
+                "A man is standing in front of a train.",
+                "A man standing next to a train on a train track.",
+                "A black and white photo of a train at a station."
+            ]
+        },
+        {
+            "input": "Large commercial cargo plane sits on tarmac next to radar equipment.",
+            "paraphrases": [
+                "An airplane is parked next to a domed tower.",
+                "A large jetliner sitting on top of a runway.",
+                "A large jetliner sitting on top of an airport.",
+                "A large jetliner sitting on top of an airport runway.",
+                "A large jetliner sitting on top of an airport tarmac."
+            ]
+        },
+        {
+            "input": "a para sailor launching his sail at the beach.",
+            "paraphrases": [
+                "A woman flying a kite over a sandy beach.",
+                "A man is flying a kite on the beach.",
+                "A man riding a kiteboard on top of a beach.",
+                "A man flying a kite on a beach.",
+                "A man flying a kite on top of a beach."
+            ]
+        },
+        {
+            "input": "A sidewalk next to the outdoor sitting area of a restaurant.",
+            "paraphrases": [
+                "A bunch of bikes that are sitting on the sidewalk.",
+                "A city street filled with lots of traffic.",
+                "A group of people standing outside of a restaurant.",
+                "A restaurant that has a lot of tables and chairs.",
+                "A couple of benches sitting on top of a sidewalk."
+            ]
+        },
+        {
+            "input": "A man sitting on a toilet with a cigarette and beer can in hand.",
+            "paraphrases": [
+                "A man on the toilet drinking a beer and smoking a cigarette.",
+                "A man sitting on a toilet with a cigarette in his mouth.",
+                "A man sitting on a toilet with a beer in his hand.",
+                "A man sitting on a toilet with a cigarette and a can of beer.",
+                "A man sitting on a toilet holding a can of beer."
+            ]
+        },
+        {
+            "input": "a group of people are with a horse in a stable",
+            "paraphrases": [
+                "Group of people in horse stall petting the horse",
+                "A group of people standing around a brown horse.",
+                "A group of people standing around a horse.",
+                "A group of people standing next to a horse.",
+                "A group of people standing next to a brown horse."
+            ]
+        },
+        {
+            "input": "Large clock tower sitting in front of a park. ",
+            "paraphrases": [
+                "A large brick clock tower stands high above the trees.",
+                "A tall clock tower towering over a park.",
+                "A clock that is on the side of a building.",
+                "A large clock tower sitting in the middle of a park.",
+                "A tall clock tower sitting in the middle of a park."
+            ]
+        },
+        {
+            "input": "A road traveling along a field under a cloudy sky.",
+            "paraphrases": [
+                "A cement walkway is beside a grassy field near a residential area.",
+                "a road that has a bunch of cars on it",
+                "A car driving down a road next to a forest.",
+                "A couple of cars driving down a street next to tall buildings.",
+                "A road filled with lots of traffic under a cloudy sky."
+            ]
+        },
+        {
+            "input": "A sandwich on top of a metal tray next to a bowl of dipping sauce.",
+            "paraphrases": [
+                "a big sandwich on a small silver plate with a bowl of broth on the side",
+                "a close up of a plate of food with a sandwich",
+                "a close up of a sandwich on a plate on a table",
+                "A sandwich sitting on a metal tray next to a bowl of sauce.",
+                "A sandwich sitting on top of a metal tray."
+            ]
+        },
+        {
+            "input": "A plate of bananas and sliced oranges covered in butterflies.",
+            "paraphrases": [
+                "A couple of butter flies on a plate with lemons.",
+                "A plate of bananas and oranges on a table.",
+                "A plate of sliced oranges and bananas on a table.",
+                "A white plate topped with sliced oranges and bananas.",
+                "A plate topped with sliced bananas and oranges."
+            ]
+        },
+        {
+            "input": "A woman is standing at a crosswalk at a traffic intersection.",
+            "paraphrases": [
+                "A fire hydrant in a city has a hose attached.",
+                "A woman that is standing on the side of the street.",
+                "A woman that is standing in front of a stop sign.",
+                "A woman that is standing in the street.",
+                "A woman standing on a street next to a traffic light."
+            ]
+        },
+        {
+            "input": "A chubby black pony in a pasture looking ahead.",
+            "paraphrases": [
+                "A large, totally black horse standing in a field.",
+                "A black horse standing in a grassy field.",
+                "A horse that is standing in the grass.",
+                "A black horse standing on top of a grass covered field.",
+                "A black pony standing in a lush green field."
+            ]
+        },
+        {
+            "input": "a small child laying in bed playing nintendo wii",
+            "paraphrases": [
+                "A young boy laying in bed holding Nintendo Wii controllers.",
+                "A little girl laying in bed playing with a Wii controller.",
+                "A young boy laying in bed holding a Nintendo Wii controller.",
+                "A young child laying in a bed holding a Nintendo Wii controller.",
+                "A little girl laying in bed holding a Nintendo Wii controller."
+            ]
+        },
+        {
+            "input": "A swan in the water near a boat tied to a dock.",
+            "paraphrases": [
+                "A white swan is swimming near a docked boat.",
+                "A swan that is standing in the water.",
+                "A swan swimming in the water next to a boat.",
+                "A swan standing in the water next to a boat.",
+                "A swan that is standing in the water near a boat."
+            ]
+        },
+        {
+            "input": "Two small children holding remote controls while sitting on a floor.",
+            "paraphrases": [
+                "Siblings playing video games on the floor at Dad's feet",
+                "A couple of kids playing a game with remote controllers.",
+                "Two children are sitting on the floor playing a video game.",
+                "Two children sitting on the floor holding remotes.",
+                "Two children playing a video game with remote controllers."
+            ]
+        },
+        {
+            "input": "A couple of baseball player standing on a field.",
+            "paraphrases": [
+                "Two guys playing baseball, with trees in the back.",
+                "A couple of men standing on top of a baseball field.",
+                "A baseball player standing next to a base on a field.",
+                "A couple of baseball players standing on a baseball field.",
+                "A couple of baseball players standing on top of a field."
+            ]
+        },
+        {
+            "input": "A machine in a factory with a blue chair sitting next to it.",
+            "paraphrases": [
+                "A person and a chair next to a doughnut machine.",
+                "A blue chair next to a machine in a factory.",
+                "A machine that has a blue chair next to it.",
+                "A blue chair sitting next to a machine in a factory.",
+                "A machine sitting in a factory next to a blue chair."
+            ]
+        },
+        {
+            "input": "Two sinks that are in a kitchen near a window.",
+            "paraphrases": [
+                "A kitchen interior with olive green wooden cabinets",
+                "A couple of white sinks in a kitchen.",
+                "A kitchen with two sinks and a window.",
+                "Two white sinks sitting next to each other in a kitchen.",
+                "Two sinks in a kitchen next to a window."
+            ]
+        },
+        {
+            "input": "A couple of people playing a game with remote controllers.",
+            "paraphrases": [
+                "A couple of people in a room with remotes.",
+                "A man and woman playing Wii in a living room.",
+                "A man and a woman are playing a video game.",
+                "A man and a woman playing a video game.",
+                "A couple of people that are playing a video game."
+            ]
+        },
+        {
+            "input": "Five men are selling a large amount of bananas.",
+            "paraphrases": [
+                "Five people sit in a room filled with bananas.",
+                "A group of people standing around a pile of bananas.",
+                "A group of men standing next to each other.",
+                "A group of men standing next to each other with bunches of bananas.",
+                "A group of people standing next to a bunch of bananas."
+            ]
+        },
+        {
+            "input": "A dog sitting between its masters feet on a footstool watching tv\n",
+            "paraphrases": [
+                "A man relaxing at home, watching television with his dog.",
+                "A dog that is laying down in front of a television.",
+                "A dog sitting in front of a flat screen TV.",
+                "A black and white dog sitting on top of a chair.",
+                "A dog sitting on a chair in front of a television."
+            ]
+        },
+        {
+            "input": "a bicycle with a basket and a blue and pink umbrella ",
+            "paraphrases": [
+                "A bike with a basket attached to it is parked.",
+                "A bicycle is parked on the side of the street.",
+                "A bicycle with a blue and pink umbrella.",
+                "A bicycle parked next to a blue and pink umbrella.",
+                "A bicycle with a basket and an umbrella on it."
+            ]
+        },
+        {
+            "input": "a herd of zebras crossing a shallow part of a river",
+            "paraphrases": [
+                "Some black and white zebras crossing a shallow stream.",
+                "A herd of zebras crossing a body of water.",
+                "A herd of zebra walking across a river.",
+                "A herd of zebras crossing a river in the wild.",
+                "A herd of zebra crossing a river next to a forest."
+            ]
+        },
+        {
+            "input": "A boy sipping a milk bottle while lying on a bed.",
+            "paraphrases": [
+                "A small child laying in bed drinking a bottle of milk.",
+                "A young boy is drinking milk from a bottle.",
+                "A boy sitting on a bed drinking a bottle of milk.",
+                "A young child sitting on a bed with a bottle of milk.",
+                "A young boy sitting on a bed drinking from a bottle."
+            ]
+        },
+        {
+            "input": "A giraffe next to a stone fence staring off into the distance.",
+            "paraphrases": [
+                "A giraffe is standing near a rock with green bushes in the background.",
+                "A giraffe that is standing in the grass.",
+                "A giraffe standing next to a stone wall.",
+                "A giraffe standing next to a stone fence.",
+                "A giraffe standing on top of a lush green field."
+            ]
+        },
+        {
+            "input": "Baseballs players sliding to base and jumping during the game.",
+            "paraphrases": [
+                "Two baseball players one catching the ball the other sliding into base",
+                "A baseball player sliding into a base during a game.",
+                "some baseball players are playing baseball on a field",
+                "A baseball player sliding into home plate during a game.",
+                "A baseball player sliding into home plate during a baseball game."
+            ]
+        },
+        {
+            "input": "A cow getting relief as it is being milked.\n",
+            "paraphrases": [
+                "Small cow sitting on a milking machine in a dirty area.",
+                "A man milking a brown and white cow in a pen.",
+                "A cow is being milked by a man.",
+                "A brown cow standing on top of a lush green field.",
+                "A brown and white cow standing on top of a field."
+            ]
+        },
+        {
+            "input": "A curse word written on a traffic sign.",
+            "paraphrases": [
+                "A no cursing sign posted as a street sign.",
+                "A black and white photo of a street sign.",
+                "a close up of a street sign with a sky background",
+                "A stop sign that has graffiti on it.",
+                "a close up of a vandalized street sign"
+            ]
+        }
+    ]
+}
