@@ -4,7 +4,8 @@ import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
 from transformers import (
     PreTrainedModel,
-    PreTrainedTokenizer
+    PreTrainedTokenizer,
+    LogitsProcessorList
 )
 
 class ParaphraserBase(nn.Module):
@@ -67,6 +68,46 @@ class ParaphraserBase(nn.Module):
         input_ids = [torch.tensor(idx) for idx in input_ids]
         input_ids = pad_sequence(input_ids, batch_first=True, padding_value=self.pad_id).to(self.device)
 
+        # Run BART generation: DFA based generation
+        output = self.base.generate(
+            input_ids,
+            num_beams=self.num_beams,
+            # Output control
+            max_new_tokens=int(input_ids.size(1) * 1.5),
+            num_return_sequences=self.num_beams,
+            return_dict_in_generate=True,
+            output_scores=True,
+        )
+        # Convert ids to tokens
+        output = self.tokenizer.batch_decode(output.sequences, skip_special_tokens=skip_special_tokens)
+        
+        # Reshape
+        results = []
+        i = 0
+        for _ in range(batch_size):
+            results.append([])
+            for __ in range(self.num_beams):
+                results[-1].append(output[i])
+                i += 1
+        return results
+
+    def generate_ngram_constrained(self, inputs, logits_processor, skip_special_tokens=True):
+        """
+        Implements various constrained decoding that differentiates the output from input.
+        Applies penalty to certain repetitions from input.
+        """
+        batch_size = len(inputs)
+
+        # Tokenize
+        input_ids = self.tokenizer(inputs, truncation=True)["input_ids"]
+        input_ids = [torch.tensor(idx) for idx in input_ids]
+        input_ids = pad_sequence(input_ids, batch_first=True, padding_value=self.pad_id).to(self.device)
+
+        # Set LogitsProcessor
+        logits_processor.exclude_id=[self.pad_id, self.tokenizer.eos_token_id]
+        logits_processor.update(input_ids)
+        logits_processors = LogitsProcessorList([logits_processor])
+
         # Run BART generation
         output = self.base.generate(
             input_ids,
@@ -76,6 +117,8 @@ class ParaphraserBase(nn.Module):
             num_return_sequences=self.num_beams,
             return_dict_in_generate=True,
             output_scores=True,
+            # N-gram penalize
+            logits_processor=logits_processors
         )
         # Convert ids to tokens
         output = self.tokenizer.batch_decode(output.sequences, skip_special_tokens=skip_special_tokens)
