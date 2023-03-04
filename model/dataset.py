@@ -1,6 +1,6 @@
 import torch
 
-class ParaphraseGenerationDataset():
+class TextGenerationDataset():
     def __init__(self, data, shuffle=True):
         self.data = data
         self.shuffle = shuffle
@@ -9,22 +9,14 @@ class ParaphraseGenerationDataset():
         return len(self.data)
     
     def __getitem__(self, i):
-        sentences = self.data[i]["paraphrases"]
+        datum = self.data[i]
         if self.shuffle:
-            from_idx, to_idx = tuple(list(torch.randperm(len(sentences))[:2]))
-            return sentences[from_idx], sentences[to_idx]
+            tgt_idx = tuple(list(torch.randperm(len(datum["target"]))[0]))
+            return datum["source"], datum["target"][tgt_idx]
         else:
-            return sentences[0], sentences[1]
+            return datum["source"], datum["target"][0]
 
-class ParaphraseGenerationEvalDataset(ParaphraseGenerationDataset):
-    """
-    Dataset for BLEU evaluation
-    """
-    def __getitem__(self, i):
-        sentences = self.data[i]["paraphrases"]
-        return sentences[0], sentences[1:]
-
-def pg_collate_fn(batch):
+def tg_collate_fn(batch):
     froms, tos = [], []
     for f, t in batch:
         froms.append(f)

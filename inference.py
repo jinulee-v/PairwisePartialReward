@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 from transformers import BartForConditionalGeneration, AutoTokenizer
 
 from model.model import ParaphraserBase as Paraphraser
-from model.dataset import ParaphraseGenerationEvalDataset, pg_collate_fn
+from model.dataset import TextGenerationDataset, tg_collate_fn
 
 model_id = "facebook/bart-base"
 
@@ -71,8 +71,8 @@ def main(args):
     # Load data
     with open(args.test_data, "r", encoding='UTF-8') as file:
         test_data = json.load(file)
-    test_dataset = ParaphraseGenerationEvalDataset(test_data)
-    test_loader = DataLoader(test_dataset, shuffle=False, batch_size=args.batch_size, collate_fn=pg_collate_fn)
+    test_dataset = TextGenerationDataset(test_data, shuffle=False)
+    test_loader = DataLoader(test_dataset, shuffle=False, batch_size=args.batch_size, collate_fn=tg_collate_fn)
 
     # Eval phase (on dev set)
     model.eval()

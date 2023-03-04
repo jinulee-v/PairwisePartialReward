@@ -114,10 +114,10 @@ def main(args):
         train_data = json.load(file)
     with open(args.dev_gen_data, "r", encoding='UTF-8') as file:
         dev_data = json.load(file)
-    train_gen_dataset = ParaphraseGenerationDataset(train_data)
-    train_gen_loader = DataLoader(train_gen_dataset, shuffle=True, batch_size=args.batch_size, collate_fn=pg_collate_fn, pin_memory=True)
-    dev_gen_dataset = ParaphraseGenerationDataset(dev_data, shuffle=False)
-    dev_gen_loader = DataLoader(dev_gen_dataset, shuffle=False, batch_size=args.batch_size, collate_fn=pg_collate_fn, pin_memory=True)
+    train_gen_dataset = TextGenerationDataset(train_data)
+    train_gen_loader = DataLoader(train_gen_dataset, shWWWuffle=True, batch_size=args.batch_size, collate_fn=tg_collate_fn, pin_memory=True)
+    dev_gen_dataset = TextGenerationDataset(dev_data, shuffle=False)
+    dev_gen_loader = DataLoader(dev_gen_dataset, shuffle=False, batch_size=args.batch_size, collate_fn=tg_collate_fn, pin_memory=True)
 
     # Define criteria and optimizer
     def criteria(gen_inputs, gen_outputs, debug=False):
