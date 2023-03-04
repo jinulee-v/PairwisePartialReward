@@ -146,6 +146,7 @@ def torch_bleu(ref_tensor, sys_tensor, pad_id):
             bleu = batch_bleu
         else:
             bleu = torch.cat([bleu, batch_bleu], dim=0)
+    bleu = bleu.nan_to_num(nan=0, posinf=0, neginf=0)
     return bleu
 
 @torch.no_grad()
