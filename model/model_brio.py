@@ -9,7 +9,6 @@ from transformers import (
     PreTrainedTokenizer
 )
 
-from .pibleu import get_pibleu_score
 from .model import ParaphraserBase
 
 class Paraphraser(ParaphraserBase):
@@ -20,6 +19,7 @@ class Paraphraser(ParaphraserBase):
     def __init__(self,
             base: PreTrainedModel,
             tokenizer: PreTrainedTokenizer,
+            metric: callable,
             num_beams: int = None,
             contrast_lambda : float = None,
             len_penalty: float = None,
@@ -29,6 +29,7 @@ class Paraphraser(ParaphraserBase):
         # BART Layer
         self.base = base
         self.tokenizer = tokenizer
+        self.metric = metric
         self.pad_id = self.base.config.pad_token_id
         self.len_penalty = len_penalty
 
@@ -70,8 +71,15 @@ class Paraphraser(ParaphraserBase):
             decoder_mask = sequences != self.pad_id
 
             # Rank the outputs
-            pibleu_score = get_pibleu_score(input_ids, sequences, self.tokenizer) # batch_size * num_beams
-            ranks = torch.argsort(pibleu_score, dim=1).to(torch.float32)
+            beam_size = sequences.size(1)
+            extended_inputs, extended_outputs = [], []
+            for in_sent, out_sent in zip(inputs, outputs):
+                extended_inputs.extend([in_sent] * beam_size)
+                extended_outputs.extend([out_sent] * beam_size)
+            samples_str = self.tokenizer.batch_decode(sequences.view(-1, sequences.size(-1)), skip_special_tokens=True) # aggregate batch & sample IDs
+            samples_str = [[s] for s in samples_str]
+            metrics = self.metric(extended_inputs, extended_outputs, samples_str).reshape(batch_size, beam_size) # batch_size * num_beams
+            ranks = torch.argsort(metrics, dim=1).to(torch.float32)
 
             # Generate sequence pair differences
             rank_diff_matrix = ranks.unsqueeze(2) - ranks.unsqueeze(1) # batch_size * num_beams * num_beams

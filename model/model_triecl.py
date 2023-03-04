@@ -8,7 +8,6 @@ from transformers import (
     PreTrainedTokenizer
 )
 
-from .pibleu import get_pibleu_score
 from .model import ParaphraserBase
 
 def _dfs(subtree, rank, curr_seq, results):
@@ -49,6 +48,7 @@ class Paraphraser(ParaphraserBase):
     def __init__(self,
             base: PreTrainedModel,
             tokenizer: PreTrainedTokenizer,
+            metric: callable,
             num_beams: int = None,
             contrast_lambda : float = None,
             device: torch.device = torch.device("cpu"), **kwargs):
@@ -57,9 +57,10 @@ class Paraphraser(ParaphraserBase):
         # BART Layer
         self.base = base
         self.tokenizer = tokenizer
+        self.metric = metric
         self.pad_id = self.base.config.pad_token_id
 
-        self.num_beams = num_beams + 1
+        self.num_beams = num_beams
         self.contrast_lambda = contrast_lambda
         self.device = device
 
@@ -85,7 +86,7 @@ class Paraphraser(ParaphraserBase):
             prefix_token_pairs = []
             _dfs(trie, rank, [], prefix_token_pairs)
             
-            beam_size = len(rank) - 1
+            beam_size = len(rank)
             while len(prefix_token_pairs) < beam_size:
                 # Patch for (rare) cases prefix_token_pair size is not consistent
                 prefix_token_pairs.append(([self.tokenizer.bos_token_id, self.tokenizer.eos_token_id], 3, 3))
@@ -120,19 +121,26 @@ class Paraphraser(ParaphraserBase):
             # Generate in beam sequences(beam size = batch size)
             output = self.base.generate(
                 input_ids,
-                num_beams=self.num_beams+1,
+                num_beams=self.num_beams,
                 # Output control
                 # max_new_tokens=int(input_ids.size(1)),
-                num_return_sequences=self.num_beams+1,
+                num_return_sequences=self.num_beams,
                 return_dict_in_generate=True,
                 output_scores=True,
                 early_stopping=True
             )
-            sequences = output.sequences.reshape(batch_size, self.num_beams+1, -1)[:, :, 1:]
+            sequences = output.sequences.reshape(batch_size, self.num_beams, -1)[:, :, 1:]
 
             # Rank the outputs
-            pibleu_score = get_pibleu_score(input_ids, sequences, self.tokenizer) # batch_size * num_beams+1
-            ranks = torch.argsort(pibleu_score, dim=1).tolist()
+            beam_size = sequences.size(1)
+            extended_inputs, extended_outputs = [], []
+            for in_sent, out_sent in zip(inputs, outputs):
+                extended_inputs.extend([in_sent] * beam_size)
+                extended_outputs.extend([out_sent] * beam_size)
+            samples_str = self.tokenizer.batch_decode(sequences.view(-1, sequences.size(-1)), skip_special_tokens=True) # aggregate batch & sample IDs
+            samples_str = [[s] for s in samples_str]
+            metrics = self.metric(extended_inputs, extended_outputs, samples_str).reshape(batch_size, beam_size) # batch_size * num_beams
+            ranks = torch.argsort(metrics, dim=1).to(torch.float32)
 
             # Extract common prefixes out of the prefix tree
             decoder_prefix, first_diff_tok_idx = self.get_prefix(sequences.tolist(), ranks)

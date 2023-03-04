@@ -14,7 +14,7 @@ from transformers import BartForConditionalGeneration, T5ForConditionalGeneratio
 # from model.model import Paraphraser -> Paraphraser is imported based on args.loss_fn
 from model.dataset import *
 from model.pibleu import set_gpu
-
+from model.metrics import *
 
 MODEL_ID = {
     'bart': 'facebook/bart-base',
@@ -23,6 +23,9 @@ MODEL_ID = {
 MODEL_CLASS = {
     'bart': BartForConditionalGeneration,
     't5': T5ForConditionalGeneration,
+}
+TASK_METRIC = {
+    "paragen": get_bert_ibleu_score
 }
 
 def main(args):
@@ -82,6 +85,7 @@ def main(args):
     model = Paraphraser(
         base_model,
         base_tokenizer,
+        metric=TASK_METRIC[args.task],
         num_beams=args.num_beams,
         contrast_lambda=args.contrast_lambda,
         len_penalty=args.len_penalty,
@@ -110,14 +114,14 @@ def main(args):
             logger.info(f"Resume training from checkpoint: epoch {resume_epoch}, step {resume_step}")
 
     # Load data
-    with open(args.train_gen_data, "r", encoding='UTF-8') as file:
+    with open(args.train_data, "r", encoding='UTF-8') as file:
         train_data = json.load(file)
-    with open(args.dev_gen_data, "r", encoding='UTF-8') as file:
+    with open(args.dev_data, "r", encoding='UTF-8') as file:
         dev_data = json.load(file)
-    train_gen_dataset = TextGenerationDataset(train_data)
-    train_gen_loader = DataLoader(train_gen_dataset, shWWWuffle=True, batch_size=args.batch_size, collate_fn=tg_collate_fn, pin_memory=True)
-    dev_gen_dataset = TextGenerationDataset(dev_data, shuffle=False)
-    dev_gen_loader = DataLoader(dev_gen_dataset, shuffle=False, batch_size=args.batch_size, collate_fn=tg_collate_fn, pin_memory=True)
+    train_dataset = TextGenerationDataset(train_data)
+    train_loader = DataLoader(train_dataset, shuffle=True, batch_size=args.batch_size, collate_fn=tg_collate_fn, pin_memory=True)
+    dev_dataset = TextGenerationDataset(dev_data, shuffle=False)
+    dev_loader = DataLoader(dev_dataset, shuffle=False, batch_size=args.batch_size, collate_fn=tg_collate_fn, pin_memory=True)
 
     # Define criteria and optimizer
     def criteria(gen_inputs, gen_outputs, debug=False):
@@ -147,13 +151,13 @@ def main(args):
     for epoch in range(args.epoch):  # loop over the dataset multiple times
         if resume_training:
             # If resume training from an error, skip to the halted epoch/step
-            if (epoch, len(train_gen_loader) * 100) <= resume_epoch_step: 
+            if (epoch, len(train_loader) * 100) <= resume_epoch_step: 
                 continue
         logger.info(f"< epoch {epoch} >")
         # Train phase
         model.train()
-        epoch_size = len(train_gen_loader)
-        for i, gen_data in enumerate(tqdm(train_gen_loader, total=epoch_size)):
+        epoch_size = len(train_loader)
+        for i, gen_data in enumerate(tqdm(train_loader, total=epoch_size)):
             if resume_training:
                 # If resume training from an error, skip to the halted epoch/step
                 if (epoch, i) <= resume_epoch_step: 
@@ -177,7 +181,7 @@ def main(args):
                     total = len(dev_data)
                     dev_loss = 0
                     first_batch=True
-                    for gen_data in dev_gen_loader:
+                    for gen_data in dev_loader:
                         gen_inputs, gen_outputs = gen_data
                         if first_batch:
                             test_input = gen_inputs[0]
@@ -216,8 +220,9 @@ def main(args):
 if __name__ == "__main__":
     parser = ArgumentParser()
     # Dataset
-    parser.add_argument("--train_gen_data", required=True, help="Training set(JSON file)")
-    parser.add_argument("--dev_gen_data", required=True, help="Validation set(JSON file)")
+    parser.add_argument("--train_data", required=True, help="Training set(JSON file)")
+    parser.add_argument("--dev_data", required=True, help="Validation set(JSON file)")
+    parser.add_argument("--task", required=True, choices=["paragen", "translation"], help="Task to train about")
 
     parser.add_argument("--generative", required=False, action="store_true", help="Use Generative NLL loss for training.")
     parser.add_argument("--contrastive", required=False, action="store_true", help="Use TrieCL contrastive loss for training.")

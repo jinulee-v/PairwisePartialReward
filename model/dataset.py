@@ -11,10 +11,10 @@ class TextGenerationDataset():
     def __getitem__(self, i):
         datum = self.data[i]
         if self.shuffle:
-            tgt_idx = tuple(list(torch.randperm(len(datum["target"]))[0]))
-            return datum["source"], datum["target"][tgt_idx]
+            tgt_idx = torch.randint(len(datum["targets"]), (1,)).item()
+            return datum["source"], datum["targets"][tgt_idx]
         else:
-            return datum["source"], datum["target"][0]
+            return datum["source"], datum["targets"][0]
 
 def tg_collate_fn(batch):
     froms, tos = [], []

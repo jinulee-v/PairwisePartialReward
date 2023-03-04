@@ -8,7 +8,6 @@ from transformers import (
     PreTrainedTokenizer
 )
 
-from .pibleu import get_pibleu_score
 from .model import ParaphraserBase
 torch.autograd.set_detect_anomaly(True)
 class Paraphraser(ParaphraserBase):
@@ -19,6 +18,7 @@ class Paraphraser(ParaphraserBase):
     def __init__(self,
             base: PreTrainedModel,
             tokenizer: PreTrainedTokenizer,
+            metric: callable,
             num_beams: int = None,
             sample_size: int = None,
             device: torch.device = torch.device("cpu"), **kwargs):
@@ -27,6 +27,7 @@ class Paraphraser(ParaphraserBase):
         # BART Layer
         self.base = base
         self.tokenizer = tokenizer
+        self.metric = metric
         self.pad_id = self.base.config.pad_token_id
 
         self.num_beams = num_beams
@@ -88,7 +89,12 @@ class Paraphraser(ParaphraserBase):
             # vanish_prevent = sequences_dedup.size(1) * 4
             
             # Get PiBLEU score
-            pibleu_score = 1 - get_pibleu_score(input_ids[i].unsqueeze(0), sequences_dedup.unsqueeze(0), self.tokenizer)[0] # batch_size * num_beams
+            # pibleu_score = 1 - get_pibleu_score(input_ids[i].unsqueeze(0), sequences_dedup.unsqueeze(0), self.tokenizer)[0] # batch_size * num_beams
+            # Rank the outputs
+            samples_str = self.tokenizer.batch_decode(sequences_dedup, skip_special_tokens=True) # aggregate batch & sample IDs
+            samples_str = [[s] for s in samples_str]
+            # samples_str = [samples_str[n:n+sequences_dedup.size(1)] for n in range(0, sequences_dedup.size(0), sequences_dedup.size(1))] # Restructure outputs
+            metrics = self.metric([inputs[i]] * len(samples_str), [outputs[i]] * len(samples_str), samples_str) # batch_size * num_beams
 
             log_probs = None
             # Batchified sequence loss calculation
@@ -117,7 +123,7 @@ class Paraphraser(ParaphraserBase):
             
             # Calculate loss
             # print(prob, pibleu_score[start:end])
-            total_loss_per_sample = torch.sum(probs * pibleu_score)
+            total_loss_per_sample = torch.sum(probs * metrics)
             # Accumulate sample probabilities
             total_sample_prob = torch.sum(probs)
             
