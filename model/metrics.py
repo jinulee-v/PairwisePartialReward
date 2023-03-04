@@ -33,10 +33,8 @@ def get_bert_ibleu_score(targets, _, samples, eval=False):
     extended_samples = []
     for t, s in zip(targets, samples):
         # Prevent zero-division in BLEU score calculation
-        if len(t) == 0:
-            t = " "
-        if len(s) == 0:
-            s = " "
+        t = t.strip() if len(t.strip()) > 0 else "."
+        s = [(string.strip() if len(string.strip()) > 0 else ".") for string in s]
         extended_targets.extend([[t]] * beam_size)
         extended_samples.extend(s)
     assert len(extended_targets) == len(extended_samples)
