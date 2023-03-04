@@ -8,14 +8,14 @@ import torch
 
 from transformers import AutoTokenizer
 
-from model.pibleu import get_pibleu_score, set_gpu
+from model.metrics import *
 
 model_id = "facebook/bart-base"
 
 
 def main(args):
     # Set device
-    set_gpu(args.gpu) # Set GPU for PiBLEU script evaluation
+    set_gpu(args.gpu) # Set GPU for BERT-iBLEU script evaluation
 
     # Init logger
     assert os.path.isdir(args.model_store_path)
@@ -32,9 +32,9 @@ def main(args):
     stdout_handler.setFormatter(formatter)
     if not args.secure:
         # Remove original log file
-        if os.path.exists(os.path.join(log_path, f"eval{eval_postfix}.log")):
-            os.remove(os.path.join(log_path, f"eval{eval_postfix}.log"))
-    file_handler = logging.FileHandler(os.path.join(log_path, f"eval{eval_postfix}.log"))
+        if os.path.exists(os.path.join(log_path, f"eval_BERT-iBLEU{eval_postfix}.log")):
+            os.remove(os.path.join(log_path, f"eval_BERT-iBLEU{eval_postfix}.log"))
+    file_handler = logging.FileHandler(os.path.join(log_path, f"eval_BERT-iBLEU{eval_postfix}.log"))
     file_handler.setFormatter(formatter)
     logger = logging.getLogger('')
     logger.addHandler(stdout_handler)
@@ -59,7 +59,7 @@ def main(args):
         outputs.append(r["paraphrases"])
         
     # Obtain scores
-    pibleu, para, bleu = get_pibleu_score(
+    bert_ibleu, bert, bleu = get_bert_ibleu_score(
         target_inp=reference,
         samples_all=outputs,
         tokenizer=AutoTokenizer.from_pretrained(model_id),
@@ -75,9 +75,9 @@ def main(args):
     logger.info("Analysis result")
 
     logger.info("Paraphrases(detected by BERT paraphrase detection model on PAWS dataset)")
-    logger.info(f"Total paraphrases rate: {torch.mean(para).item()}")
+    logger.info(f"Total paraphrases rate: {torch.mean(bert).item()}")
     logger.info(f"Paraphrases per beam:")
-    for beam_id, score in enumerate(torch.mean(para, dim=0).tolist()):
+    for beam_id, score in enumerate(torch.mean(bert, dim=0).tolist()):
         logger.info(f"    beam {beam_id + 1}: {score}")
 
 
@@ -93,14 +93,14 @@ def main(args):
         logger.info(f"    beam {beam_id + 1}: {score}")
 
     logger.info("")
-    logger.info("PiBLEU score")
-    logger.info(f"Total average: {torch.mean(pibleu)}")
-    logger.info(f"PiBLEU score per beam:")
-    for beam_id, score in enumerate(torch.mean(pibleu, dim=0).tolist()):
+    logger.info("BERT-iBLEU score")
+    logger.info(f"Total average: {torch.mean(bert_ibleu)}")
+    logger.info(f"BERT-iBLEU score per beam:")
+    for beam_id, score in enumerate(torch.mean(bert_ibleu, dim=0).tolist()):
         logger.info(f"    beam {beam_id + 1}: {score}")
-    pibleu_sorted, _ = torch.sort(pibleu, dim=-1)
-    logger.info(f"PiBLEU score per beam(sorted):")
-    for beam_id, score in enumerate(torch.mean(pibleu_sorted, dim=0).tolist()):
+    bert_ibleu_sorted, _ = torch.sort(bert_ibleu, dim=-1)
+    logger.info(f"BERT-iBLEU score per beam(sorted):")
+    for beam_id, score in enumerate(torch.mean(bert_ibleu_sorted, dim=0).tolist()):
         logger.info(f"    beam {beam_id + 1}: {score}")
     
     logger.info("")

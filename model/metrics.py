@@ -7,7 +7,6 @@ from evaluate import load
 batch_size=32
 
 device = torch.device("cpu")
-# hg_model_hub_name = "textattack/bert-base-uncased-QQP"
 metric_bert_score = load("bertscore")
 bert_score_kwargs = {
     "model_type": "microsoft/deberta-large-mnli",
@@ -25,6 +24,9 @@ def set_gpu(gpu=0):
 
 @torch.no_grad()
 def get_bert_ibleu_score(targets, _, samples, eval=False):
+    """
+    Metric for paraphrase generation (`--task paragen`).
+    """
     assert len(targets) == len(samples)
     sample_n = len(targets)
     beam_size = len(samples[0])
@@ -54,6 +56,31 @@ def get_bert_ibleu_score(targets, _, samples, eval=False):
         return bert_ibleu_score, bert_score, bleu_score
     else:
         return bert_ibleu_score
+
+@torch.no_grad()
+def get_bleu_score(_, targets, samples, eval=False):
+    """
+    Metric for paraphrase generation (`--task paragen`).
+    """
+    assert len(targets) == len(samples)
+    sample_n = len(targets)
+    beam_size = len(samples[0])
+
+    extended_targets = []
+    extended_samples = []
+    for t, s in zip(targets, samples):
+        # Prevent zero-division in BLEU score calculation
+        t = t.strip() if len(t.strip()) > 0 else "."
+        s = [(string.strip() if len(string.strip()) > 0 else ".") for string in s]
+        extended_targets.extend([[t]] * beam_size)
+        extended_samples.extend(s)
+    assert len(extended_targets) == len(extended_samples)
+
+    # BLEU score
+    bleu_score = [metric_bleu.compute(predictions=[s], references=[t])["bleu"] for s, t in zip(extended_samples, extended_targets)]
+    bleu_score = torch.tensor(bleu_score).reshape((sample_n, beam_size)).to(device)
+    
+    return bleu_score
 
 if __name__ == "__main__":
     # Example for BERT-iBLEU score calculation
