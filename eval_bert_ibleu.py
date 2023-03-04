@@ -10,9 +10,6 @@ from transformers import AutoTokenizer
 
 from model.metrics import *
 
-model_id = "facebook/bart-base"
-
-
 def main(args):
     # Set device
     set_gpu(args.gpu) # Set GPU for BERT-iBLEU script evaluation
@@ -62,7 +59,6 @@ def main(args):
     bert_ibleu, bert, bleu = get_bert_ibleu_score(
         target_inp=reference,
         samples_all=outputs,
-        tokenizer=AutoTokenizer.from_pretrained(model_id),
         eval=True
     )
 

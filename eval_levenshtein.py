@@ -8,9 +8,6 @@ import torch
 
 from nltk.metrics.distance import edit_distance
 
-model_id = "facebook/bart-base"
-
-
 def main(args):
     # Init logger
     assert os.path.isdir(args.model_store_path)

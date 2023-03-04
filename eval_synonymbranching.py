@@ -8,13 +8,19 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
-from transformers import BartForConditionalGeneration, AutoTokenizer
+from transformers import BartForConditionalGeneration, T5ForConditionalGeneration, AutoTokenizer
 
 from model.model import ParaphraserBase as Paraphraser
-from model.pibleu import get_pibleu_score, set_gpu
 from model.dataset import SynonymBranchingEvalDataset
 
-model_id = "facebook/bart-base"
+MODEL_ID = {
+    'bart': 'facebook/bart-base',
+    't5': 't5-small',
+}
+MODEL_CLASS = {
+    'bart': BartForConditionalGeneration,
+    't5': T5ForConditionalGeneration,
+}
 
 
 def main(args):
@@ -33,9 +39,6 @@ def main(args):
 
     # Set device
     device = torch.device(f"cuda:{args.gpu}" if torch.cuda.is_available() else "cpu")
-
-    # Set device
-    set_gpu(args.gpu) # Set GPU for PiBLEU script evaluation
 
     # Init logger
     assert os.path.isdir(args.model_store_path)
@@ -61,13 +64,17 @@ def main(args):
         logger.info("- %s: %r", arg, value)
     logger.info("")
     
+    # Load base model(BART, T5, ...)
+    model_id = MODEL_ID[args.base_model]
+    model_class = MODEL_CLASS[args.base_model]
+    base_model = model_class.from_pretrained(model_id)
+    base_tokenizer = AutoTokenizer.from_pretrained(model_id)
+
     # Load model
     # Load state_dict and recover non-tensor member variables
-    bart = BartForConditionalGeneration.from_pretrained(model_id)
-    bart_tokenizer = AutoTokenizer.from_pretrained(model_id)
     model = Paraphraser(
-        bart,
-        bart_tokenizer,
+        base_model,
+        base_tokenizer,
         num_beams=args.num_beams
     )
     model.load_state_dict(torch.load(model_store_path, map_location=device))
