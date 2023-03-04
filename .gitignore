@@ -9,3 +9,7 @@ checkpoints/*
 # execution
 */__pycache__/*
 
+# Irrelevant files
+*.sh
+!setup.sh
+*.log
