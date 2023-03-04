@@ -13,7 +13,6 @@ from transformers import BartForConditionalGeneration, T5ForConditionalGeneratio
 
 # from model.model import Paraphraser -> Paraphraser is imported based on args.loss_fn
 from model.dataset import *
-from model.pibleu import set_gpu
 from model.metrics import *
 
 MODEL_ID = {
