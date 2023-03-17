@@ -160,6 +160,7 @@ if __name__ == "__main__":
     # Checkpoint configs
     parser.add_argument("--model_store_path", required=False, default='checkpoints', help="Directory to store model checkpoints.")
     parser.add_argument("--model_postfix", required=True)
+    parser.add_argument("--base_model", required=False, default="bart", choices=["bart", "t5"], help="Base model to train. If using `from_checkpoint`, you do not need to specify this option.")
     
     parser.add_argument("--gpu", type=int, default=0, help="CUDA index for training")
     parser.add_argument("--secure", required=False, action="store_true", help="")

@@ -90,19 +90,20 @@ def main(args):
     result = []
     first_batch=True
     for data in tqdm(test_loader):
-        inputs, _ = data
+        sources, targets = data
         with torch.no_grad():
-            outputs = model.generate(inputs)
+            outputs = model.generate(sources)
 
-        for outputs, reference in zip(outputs, inputs):
+        for output, source, target in zip(outputs, sources, targets):
             result.append({
-                "input": reference,
-                "paraphrases": outputs
+                "source": source,
+                "target": target,
+                "outputs": output
             })
 
         if first_batch:
-            test_input = inputs[0]
-            test_outputs = outputs
+            test_input = sources[0]
+            test_outputs = outputs[0]
             first_batch = False
     
     result_store_path = os.path.join(args.model_store_path, args.model_postfix, "result.json")
