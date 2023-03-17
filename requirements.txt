@@ -8,3 +8,4 @@ diaparser==1.1.2
 ahocorapy==1.6.2
 evaluate==0.4.0
 bert_score==0.3.13
+sacrebleu==2.3.1
