@@ -1,4 +1,5 @@
 import random
+import logging
 
 import torch
 import torch.nn as nn
@@ -9,7 +10,10 @@ from transformers import (
 )
 
 from .model import ParaphraserBase
+
+logger = logging.getLogger('')
 torch.autograd.set_detect_anomaly(True)
+
 class Paraphraser(ParaphraserBase):
     """
     Implementation of MRT(Minimum Risk Training) for diverse paraphrase generation
@@ -64,7 +68,7 @@ class Paraphraser(ParaphraserBase):
                     num_return_sequences=end - start,
                     return_dict_in_generate=True,
                     do_sample=True
-                ).sequences.reshape(batch_size, end-start, -1)[:, :, 1:]
+                ).sequences.reshape(batch_size, end-start, -1)
                 # Append to sequences
                 if sequences is None:
                     sequences = output
@@ -84,33 +88,33 @@ class Paraphraser(ParaphraserBase):
         for i in range(batch_size):
             # Deduplicate sampled sequences
             sequences_dedup = torch.unique(sequences[i], dim=0)
-            decoder_mask = sequences_dedup != self.pad_id
             # vanishing-prevention
             # vanish_prevent = sequences_dedup.size(1) * 4
             
-            # Get PiBLEU score
-            # pibleu_score = 1 - get_pibleu_score(input_ids[i].unsqueeze(0), sequences_dedup.unsqueeze(0), self.tokenizer)[0] # batch_size * num_beams
             # Rank the outputs
             samples_str = self.tokenizer.batch_decode(sequences_dedup, skip_special_tokens=True) # aggregate batch & sample IDs
             samples_str = [[s] for s in samples_str]
             # samples_str = [samples_str[n:n+sequences_dedup.size(1)] for n in range(0, sequences_dedup.size(0), sequences_dedup.size(1))] # Restructure outputs
-            metrics = self.metric([inputs[i]] * len(samples_str), [outputs[i]] * len(samples_str), samples_str) # batch_size * num_beams
+            with torch.no_grad():
+                metrics = self.metric([inputs[i]] * len(samples_str), [outputs[i]] * len(samples_str), samples_str).squeeze(1) # batch_size * num_beams
+                metrics = 1-metrics
 
             log_probs = None
             # Batchified sequence loss calculation
             for start in range(0, sequences_dedup.size(0), batch_size):
                 end = min(start + batch_size, sequences_dedup.size(0))
+                decoder_mask = sequences_dedup[start:end] != self.pad_id
                 # print(i, sequences_dedup.size(), start, end)
                 logits = self.base(
                     input_ids=torch.tile(input_ids[i].unsqueeze(0), (end-start, 1)),
                     attention_mask=torch.tile(attention_mask[i].unsqueeze(0), (end-start, 1)),
                     decoder_input_ids=sequences_dedup[start:end],
-                    decoder_attention_mask=decoder_mask[start:end]
+                    decoder_attention_mask=decoder_mask
                 ).logits # (end-start) * seq_len * vocab_size
                 
                 # Calculate NLL losses(=log probability)
                 log_prob = - loss_fct(logits.reshape(-1, logits.size(2)), sequences_dedup[start:end].reshape(-1))
-                log_prob = log_prob.reshape(logits.size(0), logits.size(1)) * decoder_mask[start:end] # num_beams * seq_len
+                log_prob = log_prob.reshape(logits.size(0), logits.size(1)) * decoder_mask # num_beams * seq_len
                 log_prob = torch.sum(log_prob, dim=1) # num_beams
 
                 if log_probs is None:

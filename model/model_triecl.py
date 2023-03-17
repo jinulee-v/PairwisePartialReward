@@ -59,6 +59,10 @@ class Paraphraser(ParaphraserBase):
         self.tokenizer = tokenizer
         self.metric = metric
         self.pad_id = self.base.config.pad_token_id
+        self.eos_id = self.base.config.eos_token_id
+        self.bos_id = self.base.config.bos_token_id
+        if self.bos_id is None:
+            self.bos_id = self.pad_id # T5 hotfix
 
         self.num_beams = num_beams
         self.contrast_lambda = contrast_lambda
@@ -66,7 +70,6 @@ class Paraphraser(ParaphraserBase):
 
 
     def get_prefix(self, sequences, ranks):
-
         prefixes = []
         first_diff_tok_idx = []
         for batch, rank in zip(sequences, ranks):
@@ -74,14 +77,16 @@ class Paraphraser(ParaphraserBase):
             trie = {}
             for seq_id, seq in enumerate(batch):
                 curr_trie = trie
+                first_tok = False
                 for tok in seq:
                     if tok not in curr_trie:
                         curr_trie[tok] = [seq_id, {}]
                     # Keep track of beam ID with highest score
                     curr_trie[tok][0] = seq_id if rank[seq_id] > rank[curr_trie[tok][0]] else curr_trie[tok][0]
                     curr_trie = curr_trie[tok][1] 
-                    if tok == self.tokenizer.pad_token_id:
+                    if first_tok and tok == self.pad_id:
                         break
+                    first_tok = True
             # Extract prefix pairs and the branching token
             prefix_token_pairs = []
             _dfs(trie, rank, [], prefix_token_pairs)
@@ -89,16 +94,17 @@ class Paraphraser(ParaphraserBase):
             beam_size = len(rank)
             while len(prefix_token_pairs) < beam_size:
                 # Patch for (rare) cases prefix_token_pair size is not consistent
-                prefix_token_pairs.append(([self.tokenizer.bos_token_id, self.tokenizer.eos_token_id], 3, 3))
+                prefix_token_pairs.append(([self.tokenizer.eos_token_id, self.tokenizer.eos_token_id], 3, 3))
             assert len(prefix_token_pairs) == beam_size
 
-            prefixes.append([torch.tensor(pair[0]) for pair in prefix_token_pairs])
+            prefixes.append([torch.tensor(pair[0], dtype=torch.long) for pair in prefix_token_pairs])
             first_diff_tok_idx.append(torch.tensor([[pair[1], pair[2]] for pair in prefix_token_pairs]).unsqueeze(0))
 
         prefixes = [pad_sequence(prefix, batch_first=True, padding_value=self.tokenizer.pad_token_id).transpose(0, 1) for prefix in prefixes]
         prefixes = pad_sequence(prefixes, batch_first=True, padding_value=self.tokenizer.pad_token_id).transpose(1, 2)
         first_diff_tok_idx = torch.cat(first_diff_tok_idx, dim=0)
 
+        # return prefixes, first_diff_tok_idx
         return prefixes, first_diff_tok_idx
 
     def get_contrastive_loss(self, inputs, outputs):
@@ -113,9 +119,8 @@ class Paraphraser(ParaphraserBase):
 
         # Tokenize
         input_ids = self.tokenizer(inputs, truncation=True)["input_ids"]
-        input_ids = [torch.tensor(idx, device=self.device) for idx in input_ids]
-        input_ids = pad_sequence(input_ids, batch_first=True, padding_value=self.pad_id)
-        attention_mask = input_ids != self.pad_id
+        input_ids_list = [torch.tensor(idx, device=self.device) for idx in input_ids]
+        input_ids = pad_sequence(input_ids_list, batch_first=True, padding_value=self.pad_id)
 
         with torch.no_grad():
             # Generate in beam sequences(beam size = batch size)
@@ -129,7 +134,7 @@ class Paraphraser(ParaphraserBase):
                 output_scores=True,
                 early_stopping=True
             )
-            sequences = output.sequences.reshape(batch_size, self.num_beams, -1)[:, :, 1:]
+            sequences = output.sequences.reshape(batch_size, self.num_beams, -1)
 
             # Rank the outputs
             beam_size = sequences.size(1)
@@ -144,11 +149,12 @@ class Paraphraser(ParaphraserBase):
 
             # Extract common prefixes out of the prefix tree
             decoder_prefix, first_diff_tok_idx = self.get_prefix(sequences.tolist(), ranks)
-            decoder_prefix = decoder_prefix.to(self.device, non_blocking=True)
-            first_diff_tok_idx = first_diff_tok_idx.to(self.device, non_blocking=True)
-                
+            decoder_prefix = decoder_prefix.to(self.device)
+            first_diff_tok_idx = first_diff_tok_idx.to(self.device)
+
             # Get boundaries and decoder_mask to obtain the shared prefix
             decoder_mask = (decoder_prefix != self.tokenizer.pad_token_id).long()
+            decoder_mask[:, :, 0] = 1
             boundaries = torch.sum(decoder_mask, dim=-1) - 1
 
         # Compare adjacent beams
@@ -156,18 +162,21 @@ class Paraphraser(ParaphraserBase):
         contrast_loss = 0
         cnt = 0
         for i in range(batch_size):
+            ith_input_ids = torch.tile(input_ids_list[i].unsqueeze(0), (self.num_beams, 1))
             logits = self.base(
-                input_ids=torch.tile(input_ids[i].unsqueeze(0), (self.num_beams, 1)),
-                attention_mask=torch.tile(attention_mask[i].unsqueeze(0), (self.num_beams, 1)),
-                decoder_input_ids=decoder_prefix[i],
-                decoder_attention_mask = decoder_mask[i]
+                input_ids=ith_input_ids,
+                attention_mask=(ith_input_ids != self.pad_id),
+                decoder_input_ids=decoder_prefix[i, :, :],
+                decoder_attention_mask = decoder_mask[i, :, :]
             ).logits # num_beams, seq_len, vocab_size
             logits_gather_index = torch.tile(boundaries[i].unsqueeze(1).unsqueeze(2), (1, 1, logits.size(2)))
             logits = torch.gather(logits, 1, logits_gather_index).squeeze(1) # num_beams, vocab_size
             compare_logits = torch.gather(logits, 1, first_diff_tok_idx[i]) # num_beams, 2
             tok_dif = compare_logits[:, 0] - compare_logits[:, 1]
             # loss for input = (0 if tok_dif > contrast_lambda ; else contrast_lambda - tok_dif)
-            contrast_loss += torch.sum(self.contrast_lambda - torch.min(torch.ones_like(tok_dif) * self.contrast_lambda, tok_dif))
+            update_val = torch.sum(self.contrast_lambda - torch.min(torch.ones_like(tok_dif) * self.contrast_lambda, tok_dif))
+            if not torch.isnan(update_val): # NaN prevention
+                contrast_loss += update_val
             cnt += tok_dif.size(0)
         
         assert cnt == batch_size * self.num_beams

@@ -14,6 +14,10 @@ bert_score_kwargs = {
     "batch_size": batch_size
 }
 metric_bleu = load("bleu")
+metric_sacrebleu = load("sacrebleu")
+sacrebleu_kwargs = {
+    "tokenize": "intl"
+}
 beta = 4.0
 
 
@@ -60,7 +64,7 @@ def get_bert_ibleu_score(targets, _, samples, eval=False):
 @torch.no_grad()
 def get_bleu_score(_, targets, samples, eval=False):
     """
-    Metric for paraphrase generation (`--task paragen`).
+    Metric for machine translation (`--task translation`).
     """
     assert len(targets) == len(samples)
     sample_n = len(targets)
@@ -77,8 +81,8 @@ def get_bleu_score(_, targets, samples, eval=False):
     assert len(extended_targets) == len(extended_samples)
 
     # BLEU score
-    bleu_score = [metric_bleu.compute(predictions=[s], references=[t])["bleu"] for s, t in zip(extended_samples, extended_targets)]
-    bleu_score = torch.tensor(bleu_score).reshape((sample_n, beam_size)).to(device)
+    bleu_score = [metric_sacrebleu.compute(predictions=[s], references=[t])["score"] for s, t in zip(extended_samples, extended_targets)]
+    bleu_score = torch.tensor(bleu_score).reshape((sample_n, beam_size)).to(device) / 100 # Normalize to 0~1 scale
     
     return bleu_score
 
