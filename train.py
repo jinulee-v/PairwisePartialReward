@@ -4,6 +4,7 @@ from tqdm import tqdm
 import os, sys
 import logging
 import re
+import gc
 
 import torch
 from torch.utils.data import DataLoader
@@ -24,7 +25,8 @@ MODEL_CLASS = {
     't5': T5ForConditionalGeneration,
 }
 TASK_METRIC = {
-    "paragen": get_bert_ibleu_score
+    "paragen": get_bert_ibleu_score,
+    "translation": get_bleu_score
 }
 
 def main(args):
@@ -123,7 +125,7 @@ def main(args):
     dev_loader = DataLoader(dev_dataset, shuffle=False, batch_size=args.batch_size, collate_fn=tg_collate_fn, pin_memory=True)
 
     # Define criteria and optimizer
-    def criteria(gen_inputs, gen_outputs, debug=False):
+    def criteria(gen_inputs, gen_outputs, debug=args.debug):
         # NLL loss from the decoder head
         loss = 0
         if args.generative:
@@ -134,10 +136,17 @@ def main(args):
 
         # Contrast learning in fine-tune state
         if args.contrastive:
-            new_loss= model.get_contrastive_loss(gen_inputs, gen_outputs)
-            loss += new_loss * args.mix_rate # Multiply mix_rate for weighted sum
-            if debug:
-                logger.info(f"Contrastive loss = {new_loss}")
+            try:
+                new_loss= model.get_contrastive_loss(gen_inputs, gen_outputs)
+                loss += new_loss * args.mix_rate # Multiply mix_rate for weighted sum
+                if debug:
+                    logger.info(f"Contrastive loss = {new_loss}")
+            except RuntimeError:
+                logger.info(f"Recovering from OOM (contrastive loss = {args.loss_fn})")
+                torch.cuda.empty_cache()
+                gc.collect()
+                torch.cuda.empty_cache()
+                gc.collect()
         
         if debug:
             logger.info(f"=> Total loss = {loss}")
@@ -241,9 +250,10 @@ if __name__ == "__main__":
     parser.add_argument("--num_beams", type=int, default=16, help="number of beams(generated sequences) per inference/contrastive learning")
     parser.add_argument("--contrast_lambda", type=float, default=float('inf'), help="Contrast hinge value (default: triecl==0.5, brio==0.01)")
     parser.add_argument("--len_penalty", type=float, default=1, help="Length penalty (default: brio==1)")
-    parser.add_argument("--sample_size", type=int, default=50, help="Sampling size for distribution estimiation (default: mrt==50)")
+    parser.add_argument("--sample_size", type=int, default=16, help="Sampling size for distribution estimiation (default: mrt==50)")
     parser.add_argument("--mix_rate", type=float, default=1, help="(MLE:Loss=1:mix_rate) mix rate (default: 1)")
 
+    parser.add_argument("--debug", action="store_true")
     parser.add_argument("--log_interval", type=int, default=1000, help="validating / checkpoint saving interval. Validates at the end of each epoch for default.")
     parser.add_argument("--early_stop", type=int, default=4, help="if valid loss does not decrease for `early_stop` validations, stop training.")
 
