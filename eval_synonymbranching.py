@@ -54,6 +54,7 @@ def main(args):
     file_handler = logging.FileHandler(os.path.join(log_path, "eval_synonymbranching.log"))
     file_handler.setFormatter(formatter)
     logger = logging.getLogger('')
+    logger.handlers.clear()
     logger.addHandler(stdout_handler)
     logger.addHandler(file_handler)
     logger.setLevel(logging.INFO)
