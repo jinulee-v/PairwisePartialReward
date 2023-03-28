@@ -67,6 +67,9 @@ class Paraphraser(ParaphraserBase):
                 early_stopping=True
             )
             sequences = output.sequences.reshape(batch_size, self.num_beams, -1)
+            if self.tokenizer.bos_token_id is not None:
+                bos_index = sequences[0, 0].tolist().index(self.tokenizer.bos_token_id)
+                sequences = sequences[:, :, bos_index:]
             decoder_mask = sequences != self.pad_id
 
             # Rank the outputs

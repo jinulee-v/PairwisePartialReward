@@ -77,24 +77,24 @@ class Paraphraser(ParaphraserBase):
             trie = {}
             for seq_id, seq in enumerate(batch):
                 curr_trie = trie
-                first_tok = False
+                not_first_tok = False
                 for tok in seq:
                     if tok not in curr_trie:
                         curr_trie[tok] = [seq_id, {}]
                     # Keep track of beam ID with highest score
                     curr_trie[tok][0] = seq_id if rank[seq_id] > rank[curr_trie[tok][0]] else curr_trie[tok][0]
                     curr_trie = curr_trie[tok][1] 
-                    if first_tok and tok == self.pad_id:
+                    if not_first_tok and tok in [self.pad_id]:
                         break
-                    first_tok = True
+                    not_first_tok = True
             # Extract prefix pairs and the branching token
             prefix_token_pairs = []
             _dfs(trie, rank, [], prefix_token_pairs)
-            
+
             beam_size = len(rank)
             while len(prefix_token_pairs) < beam_size:
                 # Patch for (rare) cases prefix_token_pair size is not consistent
-                prefix_token_pairs.append(([self.tokenizer.eos_token_id, self.tokenizer.eos_token_id], 3, 3))
+                prefix_token_pairs.append(([self.pad_id], self.pad_id, self.pad_id))
             assert len(prefix_token_pairs) == beam_size
 
             prefixes.append([torch.tensor(pair[0], dtype=torch.long) for pair in prefix_token_pairs])
@@ -135,6 +135,9 @@ class Paraphraser(ParaphraserBase):
                 early_stopping=True
             )
             sequences = output.sequences.reshape(batch_size, self.num_beams, -1)
+            if self.tokenizer.bos_token_id is not None:
+                bos_index = sequences[0, 0].tolist().index(self.tokenizer.bos_token_id)
+                sequences = sequences[:, :, bos_index:]
 
             # Rank the outputs
             beam_size = sequences.size(1)
@@ -154,8 +157,7 @@ class Paraphraser(ParaphraserBase):
 
             # Get boundaries and decoder_mask to obtain the shared prefix
             decoder_mask = (decoder_prefix != self.tokenizer.pad_token_id).long()
-            decoder_mask[:, :, 0] = 1
-            boundaries = torch.sum(decoder_mask, dim=-1) - 1
+            boundaries = torch.sum(decoder_mask[:, :, 1:], dim=-1)
 
         # Compare adjacent beams
         # we compute single input and its output beams one by one(that's why we set beam_size to batch_size)

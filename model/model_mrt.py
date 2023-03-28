@@ -1,6 +1,3 @@
-import random
-import logging
-
 import torch
 import torch.nn as nn
 from torch.nn.utils.rnn import pad_sequence
@@ -11,7 +8,6 @@ from transformers import (
 
 from .model import ParaphraserBase
 
-logger = logging.getLogger('')
 torch.autograd.set_detect_anomaly(True)
 
 class Paraphraser(ParaphraserBase):
@@ -69,6 +65,9 @@ class Paraphraser(ParaphraserBase):
                     return_dict_in_generate=True,
                     do_sample=True
                 ).sequences.reshape(batch_size, end-start, -1)
+                if self.tokenizer.bos_token_id is not None:
+                    bos_index = sequences[0, 0].tolist().index(self.tokenizer.bos_token_id)
+                    sequences = sequences[:, :, bos_index:]
                 # Append to sequences
                 if sequences is None:
                     sequences = output
