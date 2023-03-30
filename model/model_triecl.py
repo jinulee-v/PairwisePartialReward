@@ -27,7 +27,7 @@ def _dfs(subtree, rank, curr_seq, results):
             if best_token is None:
                 best_token = (token, value[0])
             else:
-                if rank[value[0]] > best_token[1]:
+                if rank[value[0]] > rank[best_token[1]]:
                     not_best_tokens.append(best_token[0])
                     best_token = (token, value[0])
                 else:
