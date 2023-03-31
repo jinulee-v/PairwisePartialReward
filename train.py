@@ -76,6 +76,18 @@ def main(args):
     model_class = MODEL_CLASS[args.base_model]
     base_model = model_class.from_pretrained(model_id)
     base_tokenizer = AutoTokenizer.from_pretrained(model_id)
+    if args.from_scratch:
+        def initialize_weights(m):
+            """
+            Modifies weight initialization,
+            https://machinelearningmastery.com/weight-initialization-for-deep-learning-neural-networks/.
+            ------------------------------------
+            Returns initialized model 'm'
+            """
+            if hasattr(m, "weight") and m.weight.dim() > 1:
+                torch.nn.init.xavier_uniform_(m.weight.data)
+        base_model.apply(initialize_weights)
+        
 
     # Load model
     if args.loss_fn == "triecl":
@@ -241,6 +253,7 @@ if __name__ == "__main__":
 
     # Base model/checkpoint configuration
     parser.add_argument("--from_checkpoint", required=False, default=None, help="Pretrained checkpoint to load and resume training.")
+    parser.add_argument("--from_scratch", required=False, default=False, action="store_true", help="Re-initialize the model parameters")
     parser.add_argument("--base_model", required=False, default="bart", choices=["bart", "t5"], help="Base model to train. If using `from_checkpoint`, you do not need to specify this option.")
 
     # Training objective
@@ -276,10 +289,11 @@ if __name__ == "__main__":
     # Post-modification of args
 
     # Set contrast_lambda according to loss_fn
-    if args.loss_fn == "triecl":
-        args.contrast_lambda = 0.5
-    elif args.loss_fn == "brio":
-        args.contrast_lambda = 0.01
+    if args.contrast_lambda == float("inf"):
+        if args.loss_fn == "triecl":
+            args.contrast_lambda = 0.5
+        elif args.loss_fn == "brio":
+            args.contrast_lambda = 0.01
 
     # Assure at least one of two is on:
     assert args.generative or args.contrastive
