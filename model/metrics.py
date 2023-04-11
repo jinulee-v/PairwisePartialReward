@@ -4,7 +4,7 @@ import torch
 import os
 from evaluate import load
 from bleurt_pytorch import BleurtForSequenceClassification, BleurtTokenizer
-from comet import download_model, load_from_checkpoint
+# from comet import download_model, load_from_checkpoint
 from statistics import NormalDist
 
 from functools import wraps
@@ -44,13 +44,13 @@ bleurt_tokenizer = None
 bleurt_kwargs = {}
 BLEURT_MODEL_ID = 'lucadiliello/BLEURT-20-D12'
 # COMET
-comet_model = None
-comet_kwargs = {
-    "batch_size": 16,
-    "progress_bar": False
-}
-COMET_CACHE_PATH = os.path.expanduser("~/.comet/")
-COMET_MODEL_ID = "eamt22-cometinho-da"
+# comet_model = None
+# comet_kwargs = {
+#     "batch_size": 16,
+#     "progress_bar": False
+# }
+# COMET_CACHE_PATH = os.path.expanduser("~/.comet/")
+# COMET_MODEL_ID = "eamt22-cometinho-da"
 
 def set_gpu(gpu=0):
     global device
@@ -160,45 +160,45 @@ def get_bleurt_score(_, targets, samples, eval=False):
     
     return bleurt_score
 
-@torch.no_grad()
-@suspend_logging
-def get_comet_score(inputs, targets, samples, eval=False):
-    """
-    Metric for machine translation (`--task translation`).
-    To rescale Z-score from COMET into 0-1 based, we apply CDF(z-score to cumulative probs).
-    """
-    global comet_model, comet_kwargs
+# @torch.no_grad()
+# @suspend_logging
+# def get_comet_score(inputs, targets, samples, eval=False):
+#     """
+#     Metric for machine translation (`--task translation`).
+#     To rescale Z-score from COMET into 0-1 based, we apply CDF(z-score to cumulative probs).
+#     """
+#     global comet_model, comet_kwargs
 
-    # init comet model
-    if comet_model is None:
-        # comet_cache_path = os.path.join(COMET_CACHE_PATH, COMET_MODEL_ID, "checkpoints/model.ckpt")
-        comet_cache_path = download_model("Unbabel/wmt20-comet-da")
-        comet_model = load_from_checkpoint(comet_cache_path)
+#     # init comet model
+#     if comet_model is None:
+#         # comet_cache_path = os.path.join(COMET_CACHE_PATH, COMET_MODEL_ID, "checkpoints/model.ckpt")
+#         comet_cache_path = download_model("Unbabel/wmt20-comet-da")
+#         comet_model = load_from_checkpoint(comet_cache_path)
         
-    assert len(inputs) == len(samples)
-    sample_n = len(inputs)
-    beam_size = len(samples[0])
+#     assert len(inputs) == len(samples)
+#     sample_n = len(inputs)
+#     beam_size = len(samples[0])
 
-    # Reformat
-    comet_inputs = []
-    for i, t, s in zip(inputs, targets, samples):
-        # Prevent zero-division in BLEU score calculation
-        i = i.strip() if len(i.strip()) > 0 else "."
-        t = t.strip() if len(t.strip()) > 0 else "."
-        s = [(string.strip() if len(string.strip()) > 0 else ".") for string in s]
-        for sample in s:
-            comet_inputs.append({
-                "src": i,
-                "ref": t,
-                "mt": sample
-            })
-    model_output = comet_model.predict(comet_inputs, **comet_kwargs)[0]
-    nd = NormalDist()
-    model_output = [nd.cdf(val) for val in model_output] # Convert z-score to 0-1 prob
-    assert len(model_output) == sample_n * beam_size
-    model_output = torch.tensor(model_output, dtype=torch.float32).reshape((sample_n, beam_size))
+#     # Reformat
+#     comet_inputs = []
+#     for i, t, s in zip(inputs, targets, samples):
+#         # Prevent zero-division in BLEU score calculation
+#         i = i.strip() if len(i.strip()) > 0 else "."
+#         t = t.strip() if len(t.strip()) > 0 else "."
+#         s = [(string.strip() if len(string.strip()) > 0 else ".") for string in s]
+#         for sample in s:
+#             comet_inputs.append({
+#                 "src": i,
+#                 "ref": t,
+#                 "mt": sample
+#             })
+#     model_output = comet_model.predict(comet_inputs, **comet_kwargs)[0]
+#     nd = NormalDist()
+#     model_output = [nd.cdf(val) for val in model_output] # Convert z-score to 0-1 prob
+#     assert len(model_output) == sample_n * beam_size
+#     model_output = torch.tensor(model_output, dtype=torch.float32).reshape((sample_n, beam_size))
 
-    return model_output
+#     return model_output
 
 
 if __name__ == "__main__":

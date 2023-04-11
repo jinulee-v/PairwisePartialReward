@@ -34,7 +34,7 @@ TASK_METRIC = {
     "paragen": get_bert_ibleu_score,
     "translation": get_bleu_score,
     "translation_bleurt": get_bleurt_score,
-    "translation_comet": get_comet_score
+    # "translation_comet": get_comet_score
 }
 
 def main(args):
@@ -252,7 +252,8 @@ if __name__ == "__main__":
     # Dataset
     parser.add_argument("--train_data", required=True, help="Training set(JSON file)")
     parser.add_argument("--dev_data", required=True, help="Validation set(JSON file)")
-    parser.add_argument("--task", required=True, choices=["paragen", "translation", "translation_bleurt", "translation_comet"], help="Task to train about")
+    # parser.add_argument("--task", required=True, choices=["paragen", "translation", "translation_bleurt", "translation_comet"], help="Task to train about")
+    parser.add_argument("--task", required=True, choices=["paragen", "translation", "translation_bleurt"], help="Task to train about")
 
     parser.add_argument("--generative", required=False, action="store_true", help="Use Generative NLL loss for training.")
     parser.add_argument("--contrastive", required=False, action="store_true", help="Use TrieCL contrastive loss for training.")
