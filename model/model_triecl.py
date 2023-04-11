@@ -21,19 +21,25 @@ def _dfs(subtree, rank, curr_seq, results):
     # Branching trie
     if len(subtree) > 1:
         # Find the branch with highest rank
-        best_token = None
-        not_best_tokens = []
+        # best_token = None
+        # not_best_tokens = []
+        # for token, value in subtree.items():
+        #     if best_token is None:
+        #         best_token = (token, value[0])
+        #     else:
+        #         if rank[value[0]] > rank[best_token[1]]:
+        #             not_best_tokens.append(best_token[0])
+        #             best_token = (token, value[0])
+        #         else:
+        #             not_best_tokens.append(token)
+        # for not_best_token in not_best_tokens:
+        #     results.append((curr_seq[:], best_token[0], not_best_token))
+        tokens = []
         for token, value in subtree.items():
-            if best_token is None:
-                best_token = (token, value[0])
-            else:
-                if rank[value[0]] > rank[best_token[1]]:
-                    not_best_tokens.append(best_token[0])
-                    best_token = (token, value[0])
-                else:
-                    not_best_tokens.append(token)
-        for not_best_token in not_best_tokens:
-            results.append((curr_seq[:], best_token[0], not_best_token))
+            tokens.append((token, value[0]))
+        tokens = sorted(tokens, key=lambda x: rank[x[1]])
+        for i in range(len(tokens) - 1):
+            results.append((curr_seq[:], tokens[i+1][0], tokens[i][0]))
 
     for token, value in subtree.items():
         curr_seq.append(token)

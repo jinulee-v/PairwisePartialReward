@@ -10,7 +10,7 @@ import torch
 from torch.utils.data import DataLoader
 from torch.optim import Adam
 
-from transformers import BartForConditionalGeneration, T5ForConditionalGeneration, AutoTokenizer
+from transformers import BartForConditionalGeneration, T5ForConditionalGeneration, MarianMTModel, AutoTokenizer
 
 # from model.model import Paraphraser -> Paraphraser is imported based on args.loss_fn
 from model.dataset import *
@@ -19,10 +19,16 @@ from model.metrics import *
 MODEL_ID = {
     'bart': 'facebook/bart-base',
     't5': 't5-small',
+    'marian-ende': "Helsinki-NLP/opus-mt-en-de",
+    'marian-enfr': "Helsinki-NLP/opus-mt-en-fr",
+    'marian-enro': "Helsinki-NLP/opus-mt-en-ro",
 }
 MODEL_CLASS = {
     'bart': BartForConditionalGeneration,
     't5': T5ForConditionalGeneration,
+    'marian-ende': MarianMTModel,
+    'marian-enfr': MarianMTModel,
+    'marian-enro': MarianMTModel,
 }
 TASK_METRIC = {
     "paragen": get_bert_ibleu_score,
@@ -254,7 +260,7 @@ if __name__ == "__main__":
     # Base model/checkpoint configuration
     parser.add_argument("--from_checkpoint", required=False, default=None, help="Pretrained checkpoint to load and resume training.")
     parser.add_argument("--from_scratch", required=False, default=False, action="store_true", help="Re-initialize the model parameters")
-    parser.add_argument("--base_model", required=False, default="bart", choices=["bart", "t5"], help="Base model to train. If using `from_checkpoint`, you do not need to specify this option.")
+    parser.add_argument("--base_model", required=False, default="bart", choices=["bart", "t5", "marian-ende", "marian-enfr", "marian-enro"], help="Base model to train. If using `from_checkpoint`, you do not need to specify this option.")
 
     # Training objective
     parser.add_argument("--loss_fn", required=False, default="triecl", choices=["triecl", "brio", "mrt"], help="Loss function to use. TrieCL, BRIO, MRT(Minimum Risk Training) are supported")

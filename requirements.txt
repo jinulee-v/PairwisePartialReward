@@ -15,5 +15,4 @@ ahocorapy==1.6.2
 evaluate==0.4.0
 bert_score==0.3.13
 sacrebleu==2.3.1
-unbabel-comet==2.0.0
 git+https://github.com/lucadiliello/bleurt-pytorch.git

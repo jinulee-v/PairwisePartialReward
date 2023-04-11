@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
-from transformers import BartForConditionalGeneration, T5ForConditionalGeneration, AutoTokenizer
+from transformers import BartForConditionalGeneration, T5ForConditionalGeneration, MarianMTModel, AutoTokenizer
 
 from model.model import ParaphraserBase as Paraphraser
 from model.dataset import TextGenerationDataset, tg_collate_fn
@@ -17,10 +17,16 @@ from model.dataset import TextGenerationDataset, tg_collate_fn
 MODEL_ID = {
     'bart': 'facebook/bart-base',
     't5': 't5-small',
+    'marian-ende': "Helsinki-NLP/opus-mt-en-de",
+    'marian-enfr': "Helsinki-NLP/opus-mt-en-fr",
+    'marian-enro': "Helsinki-NLP/opus-mt-en-ro",
 }
 MODEL_CLASS = {
     'bart': BartForConditionalGeneration,
     't5': T5ForConditionalGeneration,
+    'marian-ende': MarianMTModel,
+    'marian-enfr': MarianMTModel,
+    'marian-enro': MarianMTModel,
 }
 
 def main(args):
@@ -133,7 +139,7 @@ if __name__ == "__main__":
     # Checkpoint configs
     parser.add_argument("--model_store_path", required=False, default='checkpoints', help="Directory to store model checkpoints.")
     parser.add_argument("--model_postfix", required=True, help="Name for the model.")
-    parser.add_argument("--base_model", required=False, default="bart", choices=["bart", "t5"], help="Base model to train. If using `from_checkpoint`, you do not need to specify this option.")
+    parser.add_argument("--base_model", required=False, default="bart", choices=["bart", "t5", "marian-ende", "marian-enfr", "marian-enro"], help="Base model to train. If using `from_checkpoint`, you do not need to specify this option.")
 
     parser.add_argument("--gpu", type=int, default=0, help="CUDA index for training")
     parser.add_argument("--secure", required=False, action="store_true", help="")
