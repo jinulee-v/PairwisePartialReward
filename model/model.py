@@ -28,6 +28,19 @@ class ParaphraserBase(nn.Module):
         self.num_beams = num_beams
         self.device = device
 
+    def forward(self, gen_inputs, gen_outputs, generative=True, contrastive=False, mix_rate=1):
+        # NLL loss from the decoder head
+        loss = 0
+        if generative:
+            new_loss = self.get_generation_loss(gen_inputs, gen_outputs)
+            loss += new_loss
+
+        # Contrast learning in fine-tune state
+        if contrastive:
+            new_loss= self.get_contrastive_loss(gen_inputs, gen_outputs)
+            loss += new_loss * mix_rate # Multiply mix_rate for weighted sum
+        return loss
+
     def get_generation_loss(self, inputs, outputs):
         """
         Calculates classic teacher-forced generation loss.
@@ -60,6 +73,17 @@ class ParaphraserBase(nn.Module):
         
         return loss
     
+    def get_contrastive_loss(self, inputs, outputs):
+        """
+        Calculates classic teacher-forced generation loss.
+        @param inputs List[str]
+        @param outputs List[str]
+
+        @return loss
+        """
+        # UNIMPLEMENTED
+        raise NotImplementedError()
+
     def generate(self, inputs, skip_special_tokens=True):
         batch_size = len(inputs)
 
