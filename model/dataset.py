@@ -23,7 +23,7 @@ def tg_collate_fn(batch):
         tos.append(t)
     return froms, tos
 
-class SynonymBranchingEvalDataset():
+class BranchingEvalDataset():
     def __init__(self, data):
         self.data = data
     
@@ -32,4 +32,4 @@ class SynonymBranchingEvalDataset():
     
     def __getitem__(self, i):
         datum = self.data[i]
-        return datum["input"], datum["output_prefix"].rstrip(), ' ' + datum["original"], ' ' + datum["synonym"]
+        return datum["input"], datum["output_prefix"], datum["better"], datum["worse"]
