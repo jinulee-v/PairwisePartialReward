@@ -1,5 +1,7 @@
 """
 """
+from tqdm import tqdm
+
 import torch
 import os
 from evaluate import load
@@ -24,11 +26,10 @@ batch_size=32
 
 device = torch.device("cpu")
 # BERT-score
-metric_bert_score = None
+metric_bert_score = load("bertscore")
 bert_score_kwargs = {
     "model_type": "microsoft/deberta-large-mnli",
-    "device": str(device),
-    "batch_size": batch_size
+    "device": 'cuda:0',
 }
 # BLEU
 metric_bleu = load("bleu")
@@ -58,7 +59,7 @@ def set_gpu(gpu=0):
     bert_score_kwargs["device"] = str(device)
 
 @torch.no_grad()
-def get_bert_ibleu_score(inputs, _, samples, eval=False):
+def get_bert_ibleu_score(inputs, _, samples, shape=None, extended=False, eval=False):
     """
     Metric for paraphrase generation (`--task paragen`).
     """
@@ -66,28 +67,35 @@ def get_bert_ibleu_score(inputs, _, samples, eval=False):
     if metric_bert_score is None:
         metric_bert_score = load("bertscore")
 
-    assert len(inputs) == len(samples)
-    sample_n = len(inputs)
-    beam_size = len(samples[0])
+    if shape is not None:
+        sample_n, beam_size = shape
+    else:
+        sample_n = len(inputs)
+        beam_size = len(samples[0])
 
-    extended_inputs = []
-    extended_samples = []
-    for t, s in zip(inputs, samples):
-        # Prevent zero-division in BLEU score calculation
-        t = t.strip() if len(t.strip()) > 0 else "."
-        s = [(string.strip() if len(string.strip()) > 0 else ".") for string in s]
-        extended_inputs.extend([[t]] * beam_size)
-        extended_samples.extend(s)
-    assert len(extended_inputs) == len(extended_samples)
+    if not extended:
+        # assert len(inputs) == len(samples)
+        extended_inputs = []
+        extended_samples = []
+        for t, s in zip(inputs, samples):
+            # Prevent zero-division in BLEU score calculation
+            t = t.strip() if len(t.strip()) > 0 else "."
+            s = [(string.strip() if len(string.strip()) > 0 else ".") for string in s]
+            extended_inputs.extend([[t]] * beam_size)
+            extended_samples.extend(s)
+        assert len(extended_inputs) == len(extended_samples)
+    else:
+        extended_inputs = inputs
+        extended_samples = samples
+
+    # BLEU score
+    bleu_score = [metric_bleu.compute(predictions=[s if s.strip() else "."], references=[t])["bleu"] for s, t in tqdm(zip(extended_samples, extended_inputs))]
+    bleu_score = torch.tensor(bleu_score).reshape((sample_n, beam_size)).to(device)
+    ibleu_score = 1 - bleu_score
 
     # bert_score
     bert_score = metric_bert_score.compute(predictions=extended_samples, references=extended_inputs, **bert_score_kwargs)["f1"]
     bert_score = torch.tensor(bert_score).reshape((sample_n, beam_size)).to(device)
-
-    # BLEU score
-    bleu_score = [metric_bleu.compute(predictions=[s], references=[t])["bleu"] for s, t in zip(extended_samples, extended_inputs)]
-    bleu_score = torch.tensor(bleu_score).reshape((sample_n, beam_size)).to(device)
-    ibleu_score = 1 - bleu_score
 
     bert_ibleu_score = (1 + beta) * bert_score * ibleu_score / (beta * ibleu_score + bert_score) # Modified harmonic mean to prevent zero-division
 

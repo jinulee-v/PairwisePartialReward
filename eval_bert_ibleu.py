@@ -1,5 +1,6 @@
 from argparse import ArgumentParser
 import json
+import pickle
 from tqdm import tqdm
 import os, sys
 import logging
@@ -12,7 +13,7 @@ from model.metrics import *
 
 def main(args):
     # Set device
-    set_gpu(args.gpu) # Set GPU for BERT-iBLEU script evaluation
+    # set_gpu(args.gpu) # Set GPU for BERT-iBLEU script evaluation
 
     # Init logger
     assert os.path.isdir(args.model_store_path)
@@ -54,7 +55,10 @@ def main(args):
     outputs = []
     for r in result:
         reference.append(r["source"])
-        outputs.append(r["outputs"])
+        if args.quick:
+            outputs.append([r["outputs"][0]])
+        else:
+            outputs.append(r["outputs"])
         
     # Obtain scores
     bert_ibleu, bert, bleu = get_bert_ibleu_score(
@@ -112,6 +116,9 @@ def main(args):
 
     logger.info("=================================================")
 
+    with open(f'cached/{args.model_postfix}_result.pkl', 'wb') as f:
+        pickle.dump(bert_ibleu.cpu().numpy(), f)
+
 if __name__ == "__main__":
     parser = ArgumentParser()
 
@@ -122,6 +129,7 @@ if __name__ == "__main__":
     
     parser.add_argument("--gpu", type=int, default=0, help="CUDA index for training")
     parser.add_argument("--secure", required=False, action="store_true", help="")
+    parser.add_argument("--quick", action="store_true", help="")
 
     args = parser.parse_args()
     main(args)
