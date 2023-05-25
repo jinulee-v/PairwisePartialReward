@@ -12,8 +12,10 @@ from transformers import (
 
 # from scipy.stats import rankdata
 
+from .arguments import TrieCLArguments
 from .model import ParaphraserBase
 from .dataset import get_prefix
+from .metrics import SequenceEvaluationMetric
 
 class Paraphraser(ParaphraserBase):
     """
@@ -23,15 +25,10 @@ class Paraphraser(ParaphraserBase):
     def __init__(self,
             base: PreTrainedModel,
             tokenizer: PreTrainedTokenizer,
-            metric: callable,
-            num_beams: int = None,
-            contrast_lambda : float = None,
-            # device: torch.device = torch.device("cpu"),
-            generative: bool = False,
-            contrastive: bool = False,
-            mix_rate: float = 1.0,
+            metric: SequenceEvaluationMetric,
+            args: TrieCLArguments,
             **kwargs):
-        super(Paraphraser, self).__init__(base, tokenizer, num_beams=num_beams)
+        super(Paraphraser, self).__init__(base, tokenizer, args.num_beams)
 
         # BART Layer
         self.base = base
@@ -43,13 +40,14 @@ class Paraphraser(ParaphraserBase):
         if self.bos_id is None:
             self.bos_id = self.pad_id # T5 hotfix
 
-        self.num_beams = num_beams
-        self.contrast_lambda = contrast_lambda
+        self.num_beams = args.num_beams
+        self.contrast_lambda = args.contrast_lambda
         # self.device = device
 
-        self.generative = generative
-        self.contrastive = contrastive
-        self.mix_rate = mix_rate
+        self.generative = args.generative
+        self.contrastive = args.contrastive
+        self.mix_rate = args.mix_rate
+
 
     def get_contrastive_loss(self, src, tgt, hypos=None, all_branches=None, all_win_indices=None, all_lose_indices=None, _=None, return_scores=False):
         """
@@ -90,8 +88,7 @@ class Paraphraser(ParaphraserBase):
             sources_decode = self.tokenizer.batch_decode(src, skip_special_tokens=True) # [B]
             extended_inputs = [x for x in sources_decode for _ in range(beam_size)]
 
-            scores = self.metric(extended_inputs, _, samples_str, (batch_size, beam_size), extended=True).reshape(batch_size, beam_size).cpu() # batch_size * num_beams
-
+            scores = self.metric(extended_inputs, None, samples_str, (batch_size, beam_size), extended=True).reshape(batch_size, beam_size).cpu() # batch_size * num_beams
             # Extract common prefixes out of the prefix tree
             all_branches, all_win_indices, all_lose_indices = get_prefix(sequences, scores, self.tokenizer.pad_token_id)
 

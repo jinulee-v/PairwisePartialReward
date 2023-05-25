@@ -4,13 +4,17 @@ from tqdm import tqdm
 
 import torch
 import os
-from evaluate import load
+from evaluate import load, Metric
 from bleurt_pytorch import BleurtForSequenceClassification, BleurtTokenizer
 # from comet import download_model, load_from_checkpoint
 from statistics import NormalDist
 
 from functools import wraps
 import logging 
+
+from .arguments import TrieCLArguments, EvaluationArguments
+from .perplexity import Perplexity
+
 def suspend_logging(func):
     @wraps(func)
     def inner(*args, **kwargs):
@@ -24,13 +28,13 @@ def suspend_logging(func):
 
 batch_size=32
 
-device = torch.device("cpu")
+device = torch.device("cpu") if not torch.cuda.is_available() else torch.device('cuda')
 # BERT-score
-metric_bert_score = load("bertscore")
-bert_score_kwargs = {
-    "model_type": "microsoft/deberta-large-mnli",
-    "device": 'cuda:0',
-}
+# metric_bert_score = load("bertscore")
+# bert_score_kwargs = {
+#     "model_type": "microsoft/deberta-large-mnli",
+    # "device": 'cuda:0',
+# }
 # BLEU
 metric_bleu = load("bleu")
 metric_sacrebleu = load("sacrebleu")
@@ -53,56 +57,260 @@ BLEURT_MODEL_ID = 'lucadiliello/BLEURT-20-D12'
 # COMET_CACHE_PATH = os.path.expanduser("~/.comet/")
 # COMET_MODEL_ID = "eamt22-cometinho-da"
 
-def set_gpu(gpu=0):
-    global device
-    device = torch.device(f"cuda:{gpu}") if torch.cuda.is_available() else torch.device("cpu")
-    bert_score_kwargs["device"] = str(device)
+# def set_gpu(gpu=0):
+#     global device
+#     device = torch.device(f"cuda:{gpu}") if torch.cuda.is_available() else torch.device("cpu")
+#     bert_score_kwargs["device"] = str(device)
 
-@torch.no_grad()
-def get_bert_ibleu_score(inputs, _, samples, shape=None, extended=False, eval=False):
-    """
-    Metric for paraphrase generation (`--task paragen`).
-    """
-    global metric_bert_score
-    if metric_bert_score is None:
-        metric_bert_score = load("bertscore")
 
-    if shape is not None:
-        sample_n, beam_size = shape
-    else:
-        sample_n = len(inputs)
-        beam_size = len(samples[0])
+class SequenceEvaluationMetric:
+    def __init__(self, args: EvaluationArguments):
+        pass
 
-    if not extended:
-        # assert len(inputs) == len(samples)
-        extended_inputs = []
-        extended_samples = []
-        for t, s in zip(inputs, samples):
-            # Prevent zero-division in BLEU score calculation
-            t = t.strip() if len(t.strip()) > 0 else "."
-            s = [(string.strip() if len(string.strip()) > 0 else ".") for string in s]
-            extended_inputs.extend([[t]] * beam_size)
-            extended_samples.extend(s)
-        assert len(extended_inputs) == len(extended_samples)
-    else:
-        extended_inputs = inputs
-        extended_samples = samples
+    def compute(self, inputs, refs, samples):
+        """evaluate samples, based on inputs and refs."""
+        raise NotImplementedError
 
-    # BLEU score
-    bleu_score = [metric_bleu.compute(predictions=[s if s.strip() else "."], references=[t])["bleu"] for s, t in tqdm(zip(extended_samples, extended_inputs))]
-    bleu_score = torch.tensor(bleu_score).reshape((sample_n, beam_size)).to(device)
-    ibleu_score = 1 - bleu_score
+    def __call__(self, *args, **kwargs):
+        return self.compute(*args, **kwargs)
 
-    # bert_score
-    bert_score = metric_bert_score.compute(predictions=extended_samples, references=extended_inputs, **bert_score_kwargs)["f1"]
-    bert_score = torch.tensor(bert_score).reshape((sample_n, beam_size)).to(device)
+class bert_ibleu(SequenceEvaluationMetric):
+    def __init__(self, args: EvaluationArguments):
+        self.metric_bert_score = load("bertscore")
+        self.bert_score_kwargs = {
+            "model_type": "microsoft/deberta-large-mnli",
+            # "device": 'cuda:0',
+        }
+        self.metric_bleu = load('bleu')
+        self.metric_sacrebleu = load('sacrebleu')
+        
+        self.use_sacre = args.use_sacre
+        self.use_smoothing = args.use_smoothing
+    
+    @torch.no_grad()
+    def compute(self, inputs, _, samples, shape=None, extended=False, eval=False, verbose=False):
+        if extended:
+            assert shape is not None
+            sample_n, beam_size = shape
+            extended_inputs = inputs
+            extended_samples = samples
+        else:
+            sample_n = len(inputs)
+            beam_size = len(samples[0])
 
-    bert_ibleu_score = (1 + beta) * bert_score * ibleu_score / (beta * ibleu_score + bert_score) # Modified harmonic mean to prevent zero-division
+            extended_inputs = []
+            extended_samples = []
+            for t, s in zip(inputs, samples):
+                # Prevent zero-division in BLEU score calculation
+                # t = t.strip() if len(t.strip()) > 0 else "."
+                # s = [(string.strip() if len(string.strip()) > 0 else ".") for string in s]
+                extended_inputs.extend([t] * beam_size)
+                extended_samples.extend(s)
+            assert len(extended_inputs) == len(extended_samples)
 
-    if eval:
-        return bert_ibleu_score, bert_score, bleu_score
-    else:
-        return bert_ibleu_score
+        # BLEU score
+        if self.use_sacre:
+            # sacrebleu comes with 0-100 scale
+            bleu_score = [self.metric_sacrebleu.compute(predictions=[s], references=[t])["score"] / 100 for s, t in tqdm(zip(extended_samples, extended_inputs), disable=not verbose)]
+        else:
+            bleu_score = [self.metric_bleu.compute(predictions=[s if s.strip() else "^"], references=[t if t.strip() else "^"], smooth=self.use_smoothing)["bleu"] for s, t in tqdm(zip(extended_samples, extended_inputs), disable=not verbose)]
+        bleu_score = torch.tensor(bleu_score).reshape((sample_n, beam_size)).to(device)
+        ibleu_score = 1 - bleu_score
+
+        # bert_score
+        bert_score = self.metric_bert_score.compute(predictions=extended_samples, references=extended_inputs, **self.bert_score_kwargs)["f1"]
+        bert_score = torch.tensor(bert_score).reshape((sample_n, beam_size)).to(device)
+
+        bert_ibleu_score = (1 + beta) * bert_score * ibleu_score / (beta * ibleu_score + bert_score) # Modified harmonic mean to prevent zero-division
+
+        if eval:
+            return bert_ibleu_score, bert_score, bleu_score
+        else:
+            return bert_ibleu_score
+
+class bert_ibleu_fluency(SequenceEvaluationMetric):
+    def __init__(self, args: EvaluationArguments):
+        self.metric_bert_score = load("bertscore")
+        self.bert_score_kwargs = {
+            "model_type": "microsoft/deberta-large-mnli",
+            # "device": 'cuda:0',
+        }
+        self.metric_bleu = load('bleu')
+        self.metric_sacrebleu = load('sacrebleu')
+        
+        self.perp = Perplexity()
+        self.use_sacre = args.use_sacre
+        self.use_smoothing = args.use_smoothing
+        self.hard_threshold = args.fluency_hard_threshold
+
+        # self.bert_ibleu = bert_ibleu(args)
+        # self.perp = Perplexity()
+
+    @torch.no_grad()
+    def compute(self, inputs, _, samples, shape=None, extended=False, eval=False, verbose=False):
+        if extended:
+            assert shape is not None
+            sample_n, beam_size = shape
+            extended_inputs = inputs
+            extended_samples = samples
+        else:
+            sample_n = len(inputs)
+            beam_size = len(samples[0])
+
+            extended_inputs = []
+            extended_samples = []
+            for t, s in zip(inputs, samples):
+                # Prevent zero-division in BLEU score calculation
+                # t = t.strip() if len(t.strip()) > 0 else "."
+                # s = [(string.strip() if len(string.strip()) > 0 else ".") for string in s]
+                extended_inputs.extend([t] * beam_size)
+                extended_samples.extend(s)
+            assert len(extended_inputs) == len(extended_samples)
+
+        # BLEU score
+        if self.use_sacre:
+            # sacrebleu comes with 0-100 scale
+            bleu_score = [self.metric_sacrebleu.compute(predictions=[s], references=[t])["score"] / 100 for s, t in tqdm(zip(extended_samples, extended_inputs), disable=not verbose)]
+        else:
+            bleu_score = [self.metric_bleu.compute(predictions=[s if s.strip() else "^"], references=[t if t.strip() else "^"], smooth=self.use_smoothing)["bleu"] for s, t in tqdm(zip(extended_samples, extended_inputs), disable=not verbose)]
+        bleu_score = torch.tensor(bleu_score).reshape((sample_n, beam_size)).to(device)
+        ibleu_score = 1 - bleu_score
+
+        # bert_score
+        bert_score = self.metric_bert_score.compute(predictions=extended_samples, references=extended_inputs, **self.bert_score_kwargs)["f1"]
+        bert_score = torch.tensor(bert_score).reshape((sample_n, beam_size)).to(device)
+
+        bert_ibleu_score = (1 + beta) * bert_score * ibleu_score / (beta * ibleu_score + bert_score) # Modified harmonic mean to prevent zero-division
+
+        # fluency
+        fluency_score = torch.tensor(self.perp.compute(predictions=[s if s.strip() else "." for s in extended_samples], verbose=verbose)["perplexities"]).reshape((sample_n, beam_size)).to(device)
+        source_fluency = torch.tensor(self.perp.compute(predictions=[i if i.strip() else "." for i in extended_inputs[::beam_size]], verbose=verbose)["perplexities"]).to(device)
+        ratio = 2 * source_fluency[:, None] / fluency_score
+        if self.hard_threshold:
+            # if (ppl of generated sentence) > (two times the ppl of the source), zero score
+            modifier = (ratio > 1).to(dtype=torch.float32)
+        else:
+            # score is penalized (softly)
+            modifier = torch.min(torch.ones_like(fluency_score), ratio)
+        bert_ibleu_score = bert_ibleu_score * modifier
+
+        if eval:
+            return bert_ibleu_score, bert_score, bleu_score
+        else:
+            return bert_ibleu_score
+
+    # @classmethod
+    # def without_args(cls, use_sacre: bool, use_smoothing: bool):
+    #     return cls()
+
+
+# @torch.no_grad()
+# def get_bert_ibleu_score(inputs, _, samples, shape=None, extended=False, use_sacre=True, eval=False):
+#     """
+#     Metric for paraphrase generation (`--task paragen`).
+#     """
+#     global metric_bert_score
+#     if metric_bert_score is None:
+#         metric_bert_score = load("bertscore")
+
+#     if shape is not None:
+#         sample_n, beam_size = shape
+#     else:
+#         sample_n = len(inputs)
+#         beam_size = len(samples[0])
+
+#     if not extended:
+#         # assert len(inputs) == len(samples)
+#         extended_inputs = []
+#         extended_samples = []
+#         for t, s in zip(inputs, samples):
+#             # Prevent zero-division in BLEU score calculation
+#             t = t.strip() if len(t.strip()) > 0 else "."
+#             s = [(string.strip() if len(string.strip()) > 0 else ".") for string in s]
+#             extended_inputs.extend([[t]] * beam_size)
+#             extended_samples.extend(s)
+#         assert len(extended_inputs) == len(extended_samples)
+#     else:
+#         extended_inputs = inputs
+#         extended_samples = samples
+
+#     # BLEU score
+#     if use_sacre:
+#         # sacrebleu comes with 0-100 scale
+#         bleu_score = [metric_sacrebleu.compute(predictions=[s], references=[t])["score"] / 100 for s, t in tqdm(zip(extended_samples, extended_inputs))]
+#     else:
+#         bleu_score = [metric_bleu.compute(predictions=[s if s.strip() else "^"], references=[t])["bleu"] for s, t in tqdm(zip(extended_samples, extended_inputs))]
+#     bleu_score = torch.tensor(bleu_score).reshape((sample_n, beam_size)).to(device)
+#     ibleu_score = 1 - bleu_score
+
+#     # bert_score
+#     bert_score = metric_bert_score.compute(predictions=extended_samples, references=extended_inputs, **bert_score_kwargs)["f1"]
+#     bert_score = torch.tensor(bert_score).reshape((sample_n, beam_size)).to(device)
+
+#     bert_ibleu_score = (1 + beta) * bert_score * ibleu_score / (beta * ibleu_score + bert_score) # Modified harmonic mean to prevent zero-division
+
+#     if eval:
+#         return bert_ibleu_score, bert_score, bleu_score
+#     else:
+#         return bert_ibleu_score
+
+# @torch.no_grad()
+# def get_improved_bert_ibleu_score(inputs, _, samples, perp: Metric, shape=None, extended=False, use_sacre=True, use_smoothing=True, eval=False):
+#     """
+#     bert-ibleu enhanced by explicitly considering fluency.
+#     """    
+#     global metric_bert_score
+#     if metric_bert_score is None:
+#         metric_bert_score = load("bertscore")
+
+#     if shape is not None:
+#         sample_n, beam_size = shape
+#     else:
+#         sample_n = len(inputs)
+#         beam_size = len(samples[0])
+
+#     if not extended:
+#         # assert len(inputs) == len(samples)
+#         extended_inputs = []
+#         extended_samples = []
+#         for t, s in zip(inputs, samples):
+#             # Prevent zero-division in BLEU score calculation
+#             t = t.strip() if len(t.strip()) > 0 else "."
+#             s = [(string.strip() if len(string.strip()) > 0 else ".") for string in s]
+#             extended_inputs.extend([[t]] * beam_size)
+#             extended_samples.extend(s)
+#         assert len(extended_inputs) == len(extended_samples)
+#     else:
+#         extended_inputs = inputs
+#         extended_samples = samples
+
+#     # BLEU score
+#     if use_sacre:
+#         # sacrebleu comes with 0-100 scale
+#         bleu_score = [metric_sacrebleu.compute(predictions=[s], references=[t])["score"] / 100 for s, t in tqdm(zip(extended_samples, extended_inputs))]
+#     else:
+#         bleu_score = [metric_bleu.compute(predictions=[s if s.strip() else "^"], references=[t], smoothing=use_smoothing)["bleu"] for s, t in tqdm(zip(extended_samples, extended_inputs))]
+#     bleu_score = torch.tensor(bleu_score).reshape((sample_n, beam_size)).to(device)
+#     ibleu_score = 1 - bleu_score
+
+#     # bert_score
+#     bert_score = metric_bert_score.compute(predictions=extended_samples, references=extended_inputs, **bert_score_kwargs)["f1"]
+#     bert_score = torch.tensor(bert_score).reshape((sample_n, beam_size)).to(device)
+
+#     bert_ibleu_score = (1 + beta) * bert_score * ibleu_score / (beta * ibleu_score + bert_score) # Modified harmonic mean to prevent zero-division
+
+#     # breakpoint()
+
+#     # fluency
+#     fluency_score = torch.tensor(perp.compute(predictions=extended_samples)["perplexities"]).reshape((sample_n, beam_size)).to(device)
+#     source_fluency = torch.tensor(perp.compute(predictions=extended_inputs[::beam_size])["perplexities"]).to(device)
+#     modifier = torch.min(torch.ones_like(fluency_score), 2 * source_fluency[:, None] / fluency_score)
+#     bert_ibleu_score = bert_ibleu_score * modifier
+
+#     if eval:
+#         return bert_ibleu_score, bert_score, bleu_score
+#     else:
+#         return bert_ibleu_score
 
 @torch.no_grad()
 def get_bleu_score(_, targets, samples, eval=False):
@@ -214,7 +422,7 @@ if __name__ == "__main__":
     source = ["Hola, mucho gusto."]
     target = ["Hello, nice to meet you."]
     samples = [["Hello, nice to meet you.", "Hello, nice to see you.", "Greetings, it is good to see you."]]
-    print(get_bert_ibleu_score(target, None, samples))
+    # print(get_bert_ibleu_score(target, None, samples))
     print(get_bleu_score(None, target, samples))
     print(get_bleurt_score(None, target, samples))
     # print(get_comet_score(source, target, samples))
