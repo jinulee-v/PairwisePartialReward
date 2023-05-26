@@ -17,7 +17,7 @@ from .model import ParaphraserBase
 from .dataset import get_prefix
 from .metrics import SequenceEvaluationMetric
 
-class Paraphraser(ParaphraserBase):
+class TrieCLParaphraser(ParaphraserBase):
     """
     Implementation of TrieCL(proposed) for diverse paraphrase generation
     """
@@ -28,11 +28,8 @@ class Paraphraser(ParaphraserBase):
             metric: SequenceEvaluationMetric,
             args: TrieCLArguments,
             **kwargs):
-        super(Paraphraser, self).__init__(base, tokenizer, args.num_beams)
+        super(TrieCLParaphraser, self).__init__(base, tokenizer, args.num_beams)
 
-        # BART Layer
-        self.base = base
-        self.tokenizer = tokenizer
         self.metric = metric
         self.pad_id = self.base.config.pad_token_id
         self.eos_id = self.base.config.eos_token_id
@@ -40,9 +37,7 @@ class Paraphraser(ParaphraserBase):
         if self.bos_id is None:
             self.bos_id = self.pad_id # T5 hotfix
 
-        self.num_beams = args.num_beams
         self.contrast_lambda = args.contrast_lambda
-        # self.device = device
 
         self.generative = args.generative
         self.contrastive = args.contrastive

@@ -11,9 +11,11 @@ from transformers import (
 
 from scipy.stats import rankdata
 
+from .arguments import TrieCLArguments
 from .model import ParaphraserBase
+from .metrics import SequenceEvaluationMetric
 
-class Paraphraser(ParaphraserBase):
+class BRIOParaphraser(ParaphraserBase):
     """
     Implementation of BRIO(Bringing Order to Abstractive Summarization) for diverse paraphrase generation
     """
@@ -21,29 +23,26 @@ class Paraphraser(ParaphraserBase):
     def __init__(self,
             base: PreTrainedModel,
             tokenizer: PreTrainedTokenizer,
-            metric: callable,
-            num_beams: int = None,
-            contrast_lambda : float = None,
-            len_penalty: float = None,
-            generative: bool = False,
-            contrastive: bool = False,
-            mix_rate: float = 1.0,
+            metric: SequenceEvaluationMetric,
+            args: TrieCLArguments,
+            # num_beams: int = None,
+            # contrast_lambda : float = None,
+            # len_penalty: float = None,
+            # generative: bool = False,
+            # contrastive: bool = False,
+            # mix_rate: float = 1.0,
             **kwargs):
-        super(Paraphraser, self).__init__(base, tokenizer, num_beams=num_beams)
+        super(BRIOParaphraser, self).__init__(base, tokenizer, num_beams=args.num_beams)
 
-        # BART Layer
-        self.base = base
-        self.tokenizer = tokenizer
         self.metric = metric
         self.pad_id = self.base.config.pad_token_id
-        self.len_penalty = len_penalty
+        self.len_penalty = args.len_penalty
 
-        self.num_beams = num_beams
-        self.contrast_lambda = contrast_lambda
+        self.contrast_lambda = args.contrast_lambda
         
-        self.generative = generative
-        self.contrastive = contrastive
-        self.mix_rate = mix_rate
+        self.generative = args.generative
+        self.contrastive = args.contrastive
+        self.mix_rate = args.mix_rate
 
 
     def get_contrastive_loss(self, inputs, outputs, hypos=None, _=None, __=None, ___=None):

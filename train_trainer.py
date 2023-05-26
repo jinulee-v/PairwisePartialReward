@@ -35,6 +35,9 @@ from transformers.trainer_utils import get_last_checkpoint
 
 from model.arguments import *
 from model.dataset import *
+from model.model_mrt import MRTParaphraser
+from model.model_brio import BRIOParaphraser
+from model.model_triecl import TrieCLParaphraser
 from model.metrics import *
 from model.perplexity import Perplexity
 
@@ -202,17 +205,17 @@ def main():
     base_config = AutoConfig.from_pretrained(model_id)
 
     if args.loss_fn == "triecl":
-        from model.model_triecl import Paraphraser
+        paraphraser = TrieCLParaphraser
     elif args.loss_fn == "brio":
-        from model.model_brio import Paraphraser
+        paraphraser = BRIOParaphraser
     elif args.loss_fn == "mrt":
-        from model.model_mrt import Paraphraser
+        paraphraser = MRTParaphraser
     else:
         raise ValueError("loss_fn should be in: 'triecl', 'brio', 'mrt'")
     
     metric = KEY_TO_METRIC[args.metric](eval_args)
     
-    model = Paraphraser(
+    model = paraphraser(
         base_model,
         base_tokenizer,
         metric,
