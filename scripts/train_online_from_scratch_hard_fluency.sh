@@ -3,7 +3,9 @@ dataset=$4
 model=${base_model}_${dataset}
 seed=$1
 timestamp=`date +%Y-%m-%d_%H-%M-%S`
-output_dir=checkpoints_trainer/${timestamp}_${model}_online_from_scratch_seed${seed}
+output_dir=checkpoints/${timestamp}_${model}_online_from_scratch_hard_fluency_seed${seed}
+
+cd ..
 
 if [ ! -d $output_dir ];then
     mkdir -p $output_dir
@@ -37,4 +39,6 @@ CUDA_VISIBLE_DEVICES=$2 python train_trainer.py \
   --contrastive \
   --learning_mode online \
   --contrast_lambda 0.5 \
-  --seed $seed | tee $output_dir/train.log
+  --metric bert-ibleu-fluency \
+  --fluency_hard_threshold \
+  --seed $seed | tee ${output_dir}/train.log
