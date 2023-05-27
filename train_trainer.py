@@ -243,8 +243,8 @@ def main():
             raise ValueError
 
     ls = [x for x in args.model_postfix.split('_') if 'seed' not in x]
-    cpath = '/data/private/cont_paragen/cached/' + '_'.join(ls)
-    cpath2 = '/data/private/cont_paragen/cached/' + '_'.join(ls[:2])
+    cpath = '.cache/' + '_'.join(ls)
+    cpath2 = '.cache/' + '_'.join(ls[:2])
 
     if training_args.do_train:
         logger.info("Start building(loading) train set.")

@@ -13,4 +13,11 @@ checkpoints/*
 # Irrelevant files
 *.sh
 !setup.sh
+!scripts/*.sh
 *.log
+*.out
+.cache
+
+# Data not used
+data/parabank*
+data/wmt*

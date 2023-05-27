@@ -21,6 +21,9 @@ class TextGenerationDataset(Dataset):
                 d['source'] = src
                 d['targets'] = tgt
 
+            # Create directory if not exist
+            if not os.path.exists(os.path.abspath(os.path.join(cache_path, os.pardir))):
+                os.makedirs(os.path.abspath(os.path.join(cache_path, os.pardir)))
             with open(cache_path, 'wb') as f:
                 pickle.dump(data, f)
             self.data = data

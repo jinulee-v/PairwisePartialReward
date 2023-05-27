@@ -3,7 +3,7 @@ dataset=$4
 model=${base_model}_${dataset}
 seed=$1
 timestamp=`date +%Y-%m-%d_%H-%M-%S`
-output_dir=checkpoints/${timestamp}_${model}_online_from_scratch_sacrebleu_seed${seed}
+output_dir=checkpoints/${timestamp}_${model}_online_from_scratch_mrt_seed${seed}
 
 cd ..
 
@@ -32,7 +32,7 @@ CUDA_VISIBLE_DEVICES=$2 python train_trainer.py \
   --base_model $base_model \
   --train_data data/${dataset}_paragen_train.json \
   --dev_data data/${dataset}_paragen_dev.json \
-  --loss_fn triecl \
+  --loss_fn mrt \
   --model_postfix ${model} \
   --num_beams 16 \
   --generative \
