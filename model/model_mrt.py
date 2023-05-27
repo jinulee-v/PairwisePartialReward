@@ -1,16 +1,25 @@
+import random
+
+from typing import List, Set, Tuple
+
 import torch
-import torch.nn as nn
+import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
 from transformers import (
     PreTrainedModel,
     PreTrainedTokenizer
 )
 
+# from scipy.stats import rankdata
+
+from .arguments import TrieCLArguments
 from .model import ParaphraserBase
+from .dataset import get_prefix
+from .metrics import SequenceEvaluationMetric
 
 torch.autograd.set_detect_anomaly(True)
 
-class Paraphraser(ParaphraserBase):
+class MRTParaphraser(ParaphraserBase):
     """
     Implementation of MRT(Minimum Risk Training) for diverse paraphrase generation
     """
@@ -18,24 +27,26 @@ class Paraphraser(ParaphraserBase):
     def __init__(self,
             base: PreTrainedModel,
             tokenizer: PreTrainedTokenizer,
-            metric: callable,
-            num_beams: int = None,
-            sample_size: int = None,
-            device: torch.device = torch.device("cpu"), **kwargs):
-        super(Paraphraser, self).__init__(base, tokenizer, num_beams=num_beams, device=device)
+            metric: SequenceEvaluationMetric,
+            args: TrieCLArguments,
+            **kwargs):
+        super(MRTParaphraser, self).__init__(base, tokenizer, num_beams=args.num_beams)
 
-        # BART Layer
-        self.base = base
-        self.tokenizer = tokenizer
         self.metric = metric
         self.pad_id = self.base.config.pad_token_id
+        self.eos_id = self.base.config.eos_token_id
+        self.bos_id = self.base.config.bos_token_id
+        if self.bos_id is None:
+            self.bos_id = self.pad_id # T5 hotfix
 
-        self.num_beams = num_beams
-        self.sample_size = sample_size
-        self.device = device
+        self.sample_size = args.sample_size
+
+        self.generative = args.generative
+        self.contrastive = args.contrastive
+        self.mix_rate = args.mix_rate
 
 
-    def get_contrastive_loss(self, inputs, outputs):
+    def get_contrastive_loss(self, src, tgt, hypos=None, all_branches=None, all_win_indices=None, all_lose_indices=None, _=None, return_scores=False):
         """
         Calculates the 'Minimum Risk Training' loss.
         @param inputs List[str]
@@ -43,94 +54,70 @@ class Paraphraser(ParaphraserBase):
 
         @return loss
         """
-        loss_fct = torch.nn.CrossEntropyLoss(reduction='none')
-        batch_size = len(inputs)
+        batch_size, _ = src.shape
+        beam_size = self.num_beams
 
-        # Tokenize
-        input_ids = self.tokenizer(inputs, truncation=True)["input_ids"]
-        input_ids = [torch.tensor(idx, device=self.device) for idx in input_ids]
-        input_ids = pad_sequence(input_ids, batch_first=True, padding_value=self.pad_id)
-        attention_mask = input_ids != self.pad_id
-
-        # Generate in beam sequences(beam size = batch size)
-        with torch.no_grad():
-            # Batchified sequence loss calcuiation
-            sequences = None
-            for start in range(0, self.sample_size, batch_size):
-                end = min(start + batch_size, self.sample_size)
+        if hypos is None:
+            with torch.no_grad():
+                # Generate in beam sequences(beam size = batch size)
                 output = self.base.generate(
-                    input_ids,
+                    src.to(self.base.device),
+                    num_beams=self.num_beams,
                     # Output control
-                    num_return_sequences=end - start,
+                    # max_new_tokens=int(input_ids.size(1)),
+                    num_return_sequences=self.num_beams,
                     return_dict_in_generate=True,
-                    do_sample=True
-                ).sequences.reshape(batch_size, end-start, -1)
-                # Append to sequences
-                if sequences is None:
-                    sequences = output
+                    output_scores=True,
+                    early_stopping=True
+                )
+                sequences = output.sequences.reshape(batch_size, self.num_beams, -1)
+                if self.tokenizer.bos_token_id is not None:
+                    bos_index = sequences[0, 0].tolist().index(self.tokenizer.bos_token_id)
+                    sequences = sequences[:, :, bos_index:].contiguous()
                 else:
-                    # pad to longer tensor
-                    if sequences.size(2) > output.size(2):
-                        padder = torch.ones((output.size(0), output.size(1), sequences.size(2)-output.size(2)), device=output.device, dtype=torch.long) * self.pad_id
-                        output = torch.cat((output, padder), dim=2)
-                    elif output.size(2) > sequences.size(2):
-                        padder = torch.ones((sequences.size(0), sequences.size(1), output.size(2)-sequences.size(2)), device=sequences.device, dtype=torch.long) * self.pad_id
-                        sequences = torch.cat((sequences, padder), dim=2)
-                    # append
-                    sequences = torch.cat((sequences, output), dim=1)
-            if self.tokenizer.bos_token_id is not None:
-                bos_index = sequences[0, 0].tolist().index(self.tokenizer.bos_token_id)
-                sequences = sequences[:, :, bos_index:]
+                    pad_index = sequences[0, 0].tolist().index(self.tokenizer.pad_token_id)
+                    sequences = sequences[:, :, pad_index+1:].contiguous()
+
+                samples_str = self.tokenizer.batch_decode(sequences.view(-1, sequences.size(-1)), skip_special_tokens=True) # aggregate batch & sample IDs
+                hypos = sequences
+                sequences = sequences.tolist()
+            
+            # Evaluate the outputs
+            sources_decode = self.tokenizer.batch_decode(src, skip_special_tokens=True) # [B]
+            extended_inputs = [x for x in sources_decode for _ in range(beam_size)]
+
+            scores = self.metric(extended_inputs, None, samples_str, (batch_size, beam_size), extended=True).reshape(batch_size, beam_size) # batch_size * num_beams
+            scores = scores.to(self.base.device)
         
         # Minimum Risk Training
         mrt_loss = 0
         for i in range(batch_size):
-            # Deduplicate sampled sequences
-            sequences_dedup = torch.unique(sequences[i], dim=0)
-            # vanishing-prevention
-            # vanish_prevent = sequences_dedup.size(1) * 4
-            
-            # Rank the outputs
-            samples_str = self.tokenizer.batch_decode(sequences_dedup, skip_special_tokens=True) # aggregate batch & sample IDs
-            samples_str = [[s] for s in samples_str]
-            # samples_str = [samples_str[n:n+sequences_dedup.size(1)] for n in range(0, sequences_dedup.size(0), sequences_dedup.size(1))] # Restructure outputs
-            with torch.no_grad():
-                metrics = self.metric([inputs[i]] * len(samples_str), [outputs[i]] * len(samples_str), samples_str).squeeze(1) # batch_size * num_beams
-                metrics = 1-metrics
+            ith_input_ids = src[i].repeat(beam_size, 1)
+            target = hypos[i]
+            logits = self.base(
+                input_ids=ith_input_ids.to(self.base.device),
+                labels=target.to(self.base.device),
+            ).logits # num_beams, seq_len, vocab_size
+            probs = logits.softmax(dim=-1).reshape(-1, logits.shape[-1]) # [B*T,V]
+            probs = torch.gather(probs, -1, index=target.reshape(-1).unsqueeze(-1)).reshape(target.shape) # [B, T]
 
-            log_probs = None
-            # Batchified sequence loss calculation
-            for start in range(0, sequences_dedup.size(0), batch_size):
-                end = min(start + batch_size, sequences_dedup.size(0))
-                decoder_mask = sequences_dedup[start:end] != self.pad_id
-                # print(i, sequences_dedup.size(), start, end)
-                logits = self.base(
-                    input_ids=torch.tile(input_ids[i].unsqueeze(0), (end-start, 1)),
-                    attention_mask=torch.tile(attention_mask[i].unsqueeze(0), (end-start, 1)),
-                    decoder_input_ids=sequences_dedup[start:end],
-                    decoder_attention_mask=decoder_mask
-                ).logits # (end-start) * seq_len * vocab_size
-                
-                # Calculate NLL losses(=log probability)
-                log_prob = - loss_fct(logits.reshape(-1, logits.size(2)), sequences_dedup[start:end].reshape(-1))
-                log_prob = log_prob.reshape(logits.size(0), logits.size(1)) * decoder_mask # num_beams * seq_len
-                log_prob = torch.sum(log_prob, dim=1) # num_beams
-
-                if log_probs is None:
-                    log_probs = log_prob
-                else:
-                    log_probs = torch.cat((log_probs, log_prob), dim=0)
-                
-            log_probs -= torch.mean(log_probs) # normalize to prevent underflow NaN
-            probs = torch.exp(log_probs) # num_beams
+            # Following the original paper(MRT),
+            # Take (product of probs)=exp(sum of log-probs) as sequence probability
+            seq_probs = torch.sum(probs * (target != self.pad_id).to(torch.float32), dim=1) # [B]
+            # normalize to prevent overflow/underflow
+            seq_probs -= torch.mean(seq_probs)
+            seq_probs = torch.exp(seq_probs)
             
             # Calculate loss
-            # print(prob, pibleu_score[start:end])
-            total_loss_per_sample = torch.sum(probs * metrics)
+            total_loss_per_sample = torch.sum(seq_probs * scores[i])
             # Accumulate sample probabilities
             total_sample_prob = torch.sum(probs)
             
             if torch.isfinite(total_loss_per_sample) and torch.isfinite(total_sample_prob): # NaN prevention
                 mrt_loss += total_loss_per_sample / total_sample_prob
 
-        return mrt_loss / batch_size
+        mean_loss = mrt_loss / batch_size
+        if return_scores:
+            return mean_loss, scores[:, 0].cpu()
+        else:
+            return mean_loss

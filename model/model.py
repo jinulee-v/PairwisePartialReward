@@ -17,7 +17,8 @@ class ParaphraserBase(nn.Module):
             base: PreTrainedModel,
             tokenizer: PreTrainedTokenizer,
             num_beams: int = None,
-            device: torch.device = torch.device("cpu"), **kwargs):
+            # device: torch.device = torch.device("cpu"),
+            **kwargs):
         super(ParaphraserBase, self).__init__()
 
         # BART Layer
@@ -26,7 +27,7 @@ class ParaphraserBase(nn.Module):
         self.pad_id = self.base.config.pad_token_id
 
         self.num_beams = num_beams
-        self.device = device
+        # self.device = device
 
     def forward(self, gen_inputs, gen_outputs, generative=True, contrastive=False, mix_rate=1):
         # NLL loss from the decoder head
@@ -49,26 +50,25 @@ class ParaphraserBase(nn.Module):
 
         @return loss
         """
-        torch.cuda.empty_cache()
-        assert len(inputs) == len(outputs)
-        batch_size = len(inputs)
+        # torch.cuda.empty_cache()
+        # assert len(inputs) == len(outputs)
+        # batch_size = len(inputs)
 
         # Tokenize
-        input_ids = self.tokenizer(inputs, truncation=True)["input_ids"]
-        input_ids = [torch.tensor(idx) for idx in input_ids]
-        input_ids = pad_sequence(input_ids, batch_first=True, padding_value=self.pad_id).to(self.device)
-        attention_mask = input_ids != self.pad_id
-        decoder_input_ids = self.tokenizer(outputs, truncation=True)["input_ids"]
-        decoder_input_ids = [torch.tensor(idx) for idx in decoder_input_ids]
-        decoder_input_ids = pad_sequence(decoder_input_ids, batch_first=True, padding_value=self.pad_id).to(self.device)
+        # inputs = {k:v.to(self.device) for k,v in self.tokenizer(inputs, return_tensors='pt', padding=True).items()}
+        # input_ids = [torch.tensor(idx) for idx in input_ids]
+        # input_ids = pad_sequence(input_ids, batch_first=True, padding_value=self.pad_id).to(self.device)
+        # attention_mask = input_ids != self.pad_id
+        # decoder_input_ids = self.tokenizer(outputs, truncation=True)["input_ids"]
+        # decoder_input_ids = [torch.tensor(idx) for idx in decoder_input_ids]
+        # decoder_input_ids = pad_sequence(decoder_input_ids, batch_first=True, padding_value=self.pad_id).to(self.device)
         # decoder_attention_mask = decoder_input_ids != self.pad_id
+        # target = self.tokenizer(outputs, return_tensors='pt', padding=True)['input_ids'].to(self.device)
 
-        # Run BART forward pass with teacher forcing
-        loss = self.base.forward(
-            input_ids,
-            attention_mask,
-            labels=decoder_input_ids,
-            return_dict=True
+        # Run forward pass with teacher forcing
+        loss = self.base(
+            inputs.to(self.base.device),
+            labels=outputs.to(self.base.device),
         ).loss
         
         return loss
@@ -88,16 +88,16 @@ class ParaphraserBase(nn.Module):
         batch_size = len(inputs)
 
         # Tokenize
-        input_ids = self.tokenizer(inputs, truncation=True)["input_ids"]
-        input_ids = [torch.tensor(idx) for idx in input_ids]
-        input_ids = pad_sequence(input_ids, batch_first=True, padding_value=self.pad_id).to(self.device)
+        # input_ids = self.tokenizer(inputs, truncation=True)["input_ids"]
+        # input_ids = [torch.tensor(idx) for idx in input_ids]
+        # input_ids = pad_sequence(input_ids, batch_first=True, padding_value=self.pad_id).to(self.device)
 
         # Run BART generation: DFA based generation
         output = self.base.generate(
-            input_ids,
+            inputs.to(self.base.device),
             num_beams=self.num_beams,
             # Output control
-            max_new_tokens=int(input_ids.size(1) * 1.5),
+            max_new_tokens=int(inputs.shape[1] * 1.5),
             num_return_sequences=self.num_beams,
             return_dict_in_generate=True,
             output_scores=True,
@@ -125,7 +125,7 @@ class ParaphraserBase(nn.Module):
         # Tokenize
         input_ids = self.tokenizer(inputs, truncation=True)["input_ids"]
         input_ids = [torch.tensor(idx) for idx in input_ids]
-        input_ids = pad_sequence(input_ids, batch_first=True, padding_value=self.pad_id).to(self.device)
+        input_ids = pad_sequence(input_ids, batch_first=True, padding_value=self.pad_id).to(self.base.device)
 
         # Set LogitsProcessor
         logits_processor.exclude_id=[self.pad_id, self.tokenizer.eos_token_id]
@@ -172,7 +172,7 @@ class ParaphraserBase(nn.Module):
 
         # Tokenize
         input_ids = self.tokenizer(inputs, truncation=True)["input_ids"]
-        input_ids = [torch.tensor(idx, device=self.device) for idx in input_ids]
+        input_ids = [torch.tensor(idx, device=self.base.device) for idx in input_ids]
         input_ids = pad_sequence(input_ids, batch_first=True, padding_value=self.pad_id)
         input_attention_mask = input_ids != self.pad_id
 
@@ -195,7 +195,7 @@ class ParaphraserBase(nn.Module):
         #     except IndexError:
         #         raise ValueError(f"better & worse must be different: better={self.tokenizer.decode(o)}, worse={self.tokenizer.decode(s)}")
 
-        output_ids = [torch.tensor(idx, device=self.device) for idx in output_ids]
+        output_ids = [torch.tensor(idx, device=self.base.device) for idx in output_ids]
         output_ids = pad_sequence(output_ids, batch_first=True, padding_value=self.pad_id)
         output_ids[output_ids==self.tokenizer.eos_token_id] = self.pad_id # replace EOS to PAD
         output_attention_mask = output_ids != self.pad_id
