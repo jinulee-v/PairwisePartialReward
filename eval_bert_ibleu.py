@@ -6,6 +6,7 @@ import os, sys
 import logging
 
 import torch
+from scipy.stats import spearmanr
 
 from transformers import AutoTokenizer
 
@@ -72,12 +73,6 @@ def main(args):
 
     # Obtain scores
     bert_ibleu_score, bert, bleu = metric(reference, None, outputs, eval=True)
-    # get_bert_ibleu_score(
-    #     reference,
-    #     None,
-    #     outputs,
-    #     eval=True
-    # )
 
     # How frequently does the model copy the input?
     first_beam = [beam[0] for beam in outputs]
@@ -121,6 +116,8 @@ def main(args):
         logger.info(f"    beam {beam_id + 1}: {score}")
     
     logger.info("")
+    logger.info(f"BERT-iBLEU score Spearman's rho:")
+    logger.info(f"  {spearman_rho}")
     logger.info("Repeated original sentence")
     logger.info("  (in the first beam of model output)")
     logger.info(f"{first_beam_eq_input} / {len(reference)} ({first_beam_eq_ratio} %)")

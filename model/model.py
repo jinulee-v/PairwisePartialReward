@@ -29,6 +29,19 @@ class ParaphraserBase(nn.Module):
         self.num_beams = num_beams
         # self.device = device
 
+    def forward(self, gen_inputs, gen_outputs, generative=True, contrastive=False, mix_rate=1):
+        # NLL loss from the decoder head
+        loss = 0
+        if generative:
+            new_loss = self.get_generation_loss(gen_inputs, gen_outputs)
+            loss += new_loss
+
+        # Contrast learning in fine-tune state
+        if contrastive:
+            new_loss= self.get_contrastive_loss(gen_inputs, gen_outputs)
+            loss += new_loss * mix_rate # Multiply mix_rate for weighted sum
+        return loss
+
     def get_generation_loss(self, inputs, outputs):
         """
         Calculates classic teacher-forced generation loss.
@@ -60,6 +73,17 @@ class ParaphraserBase(nn.Module):
         
         return loss
     
+    def get_contrastive_loss(self, inputs, outputs):
+        """
+        Calculates classic teacher-forced generation loss.
+        @param inputs List[str]
+        @param outputs List[str]
+
+        @return loss
+        """
+        # UNIMPLEMENTED
+        raise NotImplementedError()
+
     def generate(self, inputs, skip_special_tokens=True):
         batch_size = len(inputs)
 
@@ -133,18 +157,18 @@ class ParaphraserBase(nn.Module):
                 i += 1
         return results
 
-    def synonym_branching_test(self, inputs, output_prefixes, original, synonym):
+    def branching_test(self, inputs, output_prefixes, better, worse):
         """
-        Script for testing synonym branching.
+        Script for testing branching.
         @param inputs List[str]
-        @param output_prefixes List[str]
-        @param original List[str]
-        @param synonym List[str]
+        @param output_prefixes List[List[int]]
+        @param better List[int]
+        @param worse List[int]
 
         @return loss
         """
         # Transform batch to list
-        inputs, output_prefixes, original, synonym = list(inputs), list(output_prefixes), list(original), list(synonym)
+        inputs, output_prefixes, better, worse = list(inputs), list(output_prefixes), list(better), list(worse)
 
         # Tokenize
         input_ids = self.tokenizer(inputs, truncation=True)["input_ids"]
@@ -152,21 +176,24 @@ class ParaphraserBase(nn.Module):
         input_ids = pad_sequence(input_ids, batch_first=True, padding_value=self.pad_id)
         input_attention_mask = input_ids != self.pad_id
 
-        output_ids = self.tokenizer(output_prefixes, truncation=True)["input_ids"]
-        original_ids = self.tokenizer(original, add_special_tokens=False)["input_ids"]
-        synonym_ids = self.tokenizer(synonym, add_special_tokens=False)["input_ids"]
-        first_diff_tok_idx = []
+        # output_ids = self.tokenizer(output_prefixes, truncation=True)["input_ids"]
+        # better_ids = self.tokenizer(better, add_special_tokens=False)["input_ids"]
+        # worse_ids = self.tokenizer(worse, add_special_tokens=False)["input_ids"]
+        output_ids = output_prefixes
+        better_ids = better
+        worse_ids = worse
+        first_diff_tok_idx = list(zip(better_ids, worse_ids))
         # If first few tokens overlap, add the overlaping region to output_ids
-        for out, o, s in zip(output_ids, original_ids, synonym_ids):
-            i = 0
-            try:
-                while o[i] == s[i]:
-                    out.append(o[i])
-                    i+=1
-                assert o[i] != s[i]
-                first_diff_tok_idx.append([o[i], s[i]])
-            except IndexError:
-                raise ValueError(f"original & synonym must be different: original={self.tokenizer.decode(o)}, synonym={self.tokenizer.decode(s)}")
+        # for out, o, s in zip(output_ids, better_ids, worse_ids):
+        #     i = 0
+        #     try:
+        #         while o[i] == s[i]:
+        #             out.append(o[i])
+        #             i+=1
+        #         assert o[i] != s[i]
+        #         first_diff_tok_idx.append([o[i], s[i]])
+        #     except IndexError:
+        #         raise ValueError(f"better & worse must be different: better={self.tokenizer.decode(o)}, worse={self.tokenizer.decode(s)}")
 
         output_ids = [torch.tensor(idx, device=self.base.device) for idx in output_ids]
         output_ids = pad_sequence(output_ids, batch_first=True, padding_value=self.pad_id)
@@ -186,20 +213,24 @@ class ParaphraserBase(nn.Module):
         logits = torch.gather(logits, 1, logits_gather_index).squeeze(1) # batch_size, vocab_size
 
         # Calculate logprob_diff
-        # logprob_diff = logp(synonym) - logp(original)
+        # logprob_diff = logp(better) - logp(worse)
         logprob = F.log_softmax(logits, dim=1)
         compare_logprob = torch.gather(logprob, 1, first_diff_tok_idx) # batch_size, 2
-        logprob_diff = compare_logprob[:, 1] - compare_logprob[:, 0]
-        original_prob = torch.gather(logprob, 1, first_diff_tok_idx[:, 0].unsqueeze(1)).squeeze(1) # batch_size, 1
-        synonym_prob = torch.gather(logprob, 1, first_diff_tok_idx[:, 1].unsqueeze(1)).squeeze(1) # batch_size, 1
+        logprob_diff = compare_logprob[:, 0] - compare_logprob[:, 1]
+        better_prob = torch.gather(logprob, 1, first_diff_tok_idx[:, 0].unsqueeze(1)).squeeze(1) # batch_size, 1
+        worse_prob = torch.gather(logprob, 1, first_diff_tok_idx[:, 1].unsqueeze(1)).squeeze(1) # batch_size, 1
 
-        # Calculate synonym_rank
+        # Calculate worse_rank
         ranks = torch.argsort(logprob, dim=1, descending=True)
-        synonym_rank = torch.gather(ranks, 1, first_diff_tok_idx[:, 1].unsqueeze(1)).squeeze(1) # batch_size, 1
+        better_rank = torch.gather(ranks, 1, first_diff_tok_idx[:, 0].unsqueeze(1)).squeeze(1) # batch_size, 1
+        worse_rank = torch.gather(ranks, 1, first_diff_tok_idx[:, 1].unsqueeze(1)).squeeze(1) # batch_size, 1
+        rank_diff = better_rank - worse_rank
         
         return {
-            "original_prob": original_prob,
-            "synonym_prob": synonym_prob,
-            "logprob_diff": logprob_diff,
-            "synonym_rank": synonym_rank
+            "better_prob": better_prob.tolist(),
+            "worse_prob": worse_prob.tolist(),
+            "logprob_diff": logprob_diff.tolist(),
+            "better_rank": better_rank.tolist(),
+            "worse_rank": worse_rank.tolist(),
+            "rank_diff": rank_diff.tolist()
         }

@@ -88,14 +88,14 @@ def _find_para_pairs(pair, mode):
                             result.append({
                                 "input": paras[i],
                                 "output_prefix": paras[i][:(paras[i].lower().find(word1[1].lower()))],
-                                "original": paras[i][i_word1_index:i_word1_index + len(word1[1])],
-                                "synonym": paras[j][j_word2_index:j_word2_index + len(word2[1])]
+                                "worse": paras[i][i_word1_index:i_word1_index + len(word1[1])],
+                                "better": paras[j][j_word2_index:j_word2_index + len(word2[1])]
                             })
                             result.append({
                                 "input": paras[j],
                                 "output_prefix": paras[j][:(paras[j].lower().find(word2[1].lower()))],
-                                "original": paras[j][j_word2_index:j_word2_index + len(word2[1])],
-                                "synonym": paras[i][i_word1_index:i_word1_index + len(word1[1])]
+                                "worse": paras[j][j_word2_index:j_word2_index + len(word2[1])],
+                                "better": paras[i][i_word1_index:i_word1_index + len(word1[1])]
                             })
 
                     # Select all pairs of synonyms 
@@ -119,8 +119,8 @@ def _find_para_pairs(pair, mode):
         dedup = set()
         dedup_result = []
         for r in result:
-            if r["original"] + ";" + r["synonym"] not in dedup:
-                dedup.add(r["original"] + ";" + r["synonym"])
+            if r["worse"] + ";" + r["better"] not in dedup:
+                dedup.add(r["worse"] + ";" + r["better"])
                 dedup_result.append(r)
         return dedup_result
 
@@ -162,8 +162,8 @@ def generate_branch_dataset(synonyms_from_train, split="test"):
         results.extend(t)
     
     # Leave only synonym pairs from train set
-    results = [r for r in results if (r["original"] + ";" + r["synonym"] in synonyms_from_train) or (r["synonym"] + ";" + r["original"] in synonyms_from_train)]
-    results = [r for r in results if len(r["original"]) > 1 and len(r["synonym"]) > 1]
+    results = [r for r in results if (r["worse"] + ";" + r["better"] in synonyms_from_train) or (r["better"] + ";" + r["worse"] in synonyms_from_train)]
+    results = [r for r in results if len(r["worse"]) > 1 and len(r["better"]) > 1]
     
     with open(f"data/{dataset}_synonym_branching_test.json", "w", encoding="UTF-8") as file:
         json.dump(results, file, ensure_ascii=False, indent=4)

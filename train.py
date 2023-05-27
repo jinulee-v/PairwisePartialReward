@@ -145,36 +145,9 @@ def main(args):
     dev_dataset = TextGenerationDataset(dev_data, shuffle=False)
     dev_loader = DataLoader(dev_dataset, shuffle=False, batch_size=args.batch_size, collate_fn=tg_collate_fn, pin_memory=True)
 
-    # Define criteria and optimizer
-    def criteria(gen_inputs, gen_outputs, debug=args.debug):
-        # NLL loss from the decoder head
-        loss = 0
-        if args.generative:
-            new_loss = model.get_generation_loss(gen_inputs, gen_outputs)
-            loss += new_loss
-            if debug:
-                logger.info(f"NLL loss = {new_loss}")
-
-        # Contrast learning in fine-tune state
-        if args.contrastive:
-            try:
-                new_loss= model.get_contrastive_loss(gen_inputs, gen_outputs)
-                loss += new_loss * args.mix_rate # Multiply mix_rate for weighted sum
-                if debug:
-                    logger.info(f"Contrastive loss = {new_loss}")
-            except RuntimeError as e:
-                print(e)
-                logger.info(f"Recovering from OOM (contrastive loss = {args.loss_fn})")
-                torch.cuda.empty_cache()
-                gc.collect()
-                torch.cuda.empty_cache()
-                gc.collect()
-        
-        if debug:
-            logger.info(f"=> Total loss = {loss}")
-        return loss
-
+    # Define optimizer
     optimizer = Adam(model.parameters(), lr=args.lr)
+    grad_scaler = torch.cuda.amp.GradScaler(enabled=(args.amp and "cuda" in str(device)))
 
     min_loss = 1e+10
     early_stop_count = 0
@@ -200,9 +173,22 @@ def main(args):
             optimizer.zero_grad()
 
             # forward + backward + optimize
-            loss = criteria(gen_inputs, gen_outputs)
-            loss.backward()
-            optimizer.step()
+            try:
+                with torch.autocast(device_type='cuda', dtype=torch.float16, enabled=args.amp):
+                    loss = model(
+                        gen_inputs, gen_outputs,
+                        generative=args.generative, contrastive=args.contrastive, mix_rate=args.mix_rate
+                    )
+                grad_scaler.scale(loss).backward() # loss.backward()
+                grad_scaler.step(optimizer) # optimizer.step()
+                grad_scaler.update()
+            except RuntimeError as e:
+                print(e)
+                logger.info(f"Recovering from error")
+                torch.cuda.empty_cache()
+                gc.collect()
+                torch.cuda.empty_cache()
+                gc.collect()
 
             if i % args.log_interval == args.log_interval-1 or i == epoch_size-1:
                 # Eval phase (on dev set)
@@ -213,13 +199,17 @@ def main(args):
                     first_batch=True
                     for gen_data in dev_loader:
                         gen_inputs, gen_outputs = gen_data
+                        _dev_loss = model(
+                            gen_inputs, gen_outputs,
+                            generative=args.generative, contrastive=args.contrastive, mix_rate=args.mix_rate
+                        )
                         if first_batch:
                             test_input = gen_inputs[0]
                             test_outputs = model.generate([test_input])[0]
-                            dev_loss += (criteria(gen_inputs, gen_outputs, debug=True)).item() * args.batch_size
+                            dev_loss += _dev_loss.item() * args.batch_size
                             first_batch=False
                         else:
-                            dev_loss += (criteria(gen_inputs, gen_outputs)).item() * args.batch_size
+                            dev_loss += _dev_loss.item() * args.batch_size
                 logger.info("=================================================")
                 logger.info(f"epoch {epoch}, step {i}")
                 logger.info(f"dev loss = {dev_loss/total}")
@@ -280,6 +270,7 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--log_interval", type=int, default=1000, help="validating / checkpoint saving interval. Validates at the end of each epoch for default.")
     parser.add_argument("--early_stop", type=int, default=4, help="if valid loss does not decrease for `early_stop` validations, stop training.")
+    parser.add_argument("--amp", action="store_true", help="Use automatic mixed precision(AMP) between fp16 and fp32")
 
     # PyTorch/CUDA configuration
     parser.add_argument("--gpu", type=int, default=0, help="CUDA index for training")
