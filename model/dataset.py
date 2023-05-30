@@ -8,14 +8,21 @@ from scipy.stats import rankdata
 import torch
 from torch.utils.data import Dataset
 
+from transformers import T5Tokenizer, T5TokenizerFast
+
 class TextGenerationDataset(Dataset):
     def __init__(self, tokenizer, data, cache_path, shuffle=True):
         try:
             with open(cache_path, 'rb') as f:
                 self.data = pickle.load(f)
         except:
+            # Prefix for T5 models
+            if isinstance(tokenizer, T5Tokenizer) or isinstance(tokenizer, T5TokenizerFast):
+                prefix = "paraphrase: "
+            else:
+                prefix = ""
             for _, d in tqdm(enumerate(data)):
-                src = tokenizer(d['source'], return_tensors='pt')['input_ids'][0]
+                src = tokenizer(prefix + d['source'], return_tensors='pt')['input_ids'][0]
                 tgt = [tokenizer(t, return_tensors='pt')['input_ids'][0] for t in d['targets']]
                 
                 d['source'] = src
