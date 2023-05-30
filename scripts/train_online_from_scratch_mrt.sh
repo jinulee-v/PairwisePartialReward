@@ -27,6 +27,8 @@ CUDA_VISIBLE_DEVICES=$2 python train_trainer.py \
   --logging_strategy steps \
   --logging_steps 100 \
   --metric_for_best_model bert_ibleu \
+  --use_sacre False \
+  --use_smoothing False \
   --load_best_model_at_end \
   --task paragen \
   --base_model $base_model \
