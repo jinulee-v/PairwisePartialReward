@@ -25,12 +25,6 @@ class BRIOParaphraser(ParaphraserBase):
             tokenizer: PreTrainedTokenizer,
             metric: SequenceEvaluationMetric,
             args: TrieCLArguments,
-            # num_beams: int = None,
-            # contrast_lambda : float = None,
-            # len_penalty: float = None,
-            # generative: bool = False,
-            # contrastive: bool = False,
-            # mix_rate: float = 1.0,
             **kwargs):
         super(BRIOParaphraser, self).__init__(base, tokenizer, num_beams=args.num_beams)
 
@@ -112,12 +106,17 @@ class BRIOParaphraser(ParaphraserBase):
             losses = losses.sum(dim=-1) / torch.pow(dmask.sum(dim=1), self.len_penalty)
             
             # calculate pairwise loss
-            loss_diff_matrix = losses[:, None] - losses # loss_diff[i, j] = losses[i] - losses[j]
-            loss_terms = torch.max(torch.zeros_like(loss_diff_matrix), rank_diff_matrix[i] - loss_diff_matrix) * rmask
+            loss_diff_matrix = losses[:, None] - losses # loss_diff[i, j] = lprobs[i] - lprobs[j]
+            # if rmask[i,j] == true, it means that rank[i] > rank[j], i.e., j is ranked higher
+            # we want to minimize max(0, lprobs[i] - lprobs[j] + lambda_ij), i.e.,
+            # want lprobs[j] to be larger than lprobs[i] + lambda_ij
+            loss_terms = torch.max(torch.zeros_like(loss_diff_matrix), rank_diff_matrix[i] + loss_diff_matrix) * rmask
             update_val = loss_terms.sum() / rmask.sum() # Normalize by (seq1, seq2) combination count
             if not torch.isnan(update_val): # NaN prevention
                 contrast_loss += update_val
                 cnt += 1
         
-        assert cnt > 0
-        return contrast_loss / cnt # Normalize by batch size
+        if cnt > 0:
+            return contrast_loss / cnt # Normalize by batch size
+        else:
+            return 0
