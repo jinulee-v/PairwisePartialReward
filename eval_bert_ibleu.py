@@ -11,7 +11,7 @@ from scipy.stats import spearmanr
 from transformers import AutoTokenizer
 
 from model.arguments import EvaluationArguments
-from model.metrics import bert_ibleu, bert_ibleu_fluency
+from model.metrics import bert_ibleu #, bert_ibleu_fluency
 
 def main(args):
     # Init logger
@@ -62,12 +62,13 @@ def main(args):
             outputs.append([r["outputs"][0]])
         else:
             outputs.append(r["outputs"])
-        
+    
     if args.fluency:
-        metric_class = bert_ibleu_fluency
+        # metric_class = bert_ibleu_fluency
+        metric_class = bert_ibleu
     else:
         metric_class = bert_ibleu
-
+    
     eval_args = EvaluationArguments(use_sacre=args.use_sacre, use_smoothing=args.use_smoothing, fluency_hard_threshold=args.fluency_hard_threshold)
     metric = metric_class(eval_args)
 
@@ -116,8 +117,6 @@ def main(args):
         logger.info(f"    beam {beam_id + 1}: {score}")
     
     logger.info("")
-    logger.info(f"BERT-iBLEU score Spearman's rho:")
-    logger.info(f"  {spearman_rho}")
     logger.info("Repeated original sentence")
     logger.info("  (in the first beam of model output)")
     logger.info(f"{first_beam_eq_input} / {len(reference)} ({first_beam_eq_ratio} %)")

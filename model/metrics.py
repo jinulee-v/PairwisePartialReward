@@ -138,7 +138,7 @@ class bert_ibleu_fluency(SequenceEvaluationMetric):
         self.metric_bleu = load('bleu')
         self.metric_sacrebleu = load('sacrebleu')
         
-        self.perp = Perplexity()
+        # self.perp = Perplexity()
         self.use_sacre = args.use_sacre
         self.use_smoothing = args.use_smoothing
         self.hard_threshold = args.fluency_hard_threshold

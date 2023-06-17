@@ -87,7 +87,7 @@ def main(args):
         return src, tgt
 
     ls = [x for x in args.model_postfix.split('_') if 'seed' not in x]
-    cpath = '/data/private/cont_paragen/cached/' + '_'.join(ls)
+    cpath = '.cache/' + '_'.join(ls)
 
     if 'dev' in args.test_data:
         split = 'dev'
@@ -106,7 +106,7 @@ def main(args):
     with torch.inference_mode():        
         for data in tqdm(test_dataloader):
             sources, targets = data
-            outputs = model.generate(sources)
+            outputs = model.generate(sources, sampling=args.sampling, length_penalty=args.lenpen)
             # hypos = [output[0] for output in outputs]
             sources_decode = base_tokenizer.batch_decode(sources, skip_special_tokens=True)
             targets_decode = base_tokenizer.batch_decode(targets, skip_special_tokens=True)
@@ -119,11 +119,18 @@ def main(args):
                 })
     
     if 'dev' in args.test_data:
-        result_name = 'result_dev.json'
+        result_name = 'result_dev'
     elif 'train' in args.test_data:
-        result_name = 'result_train.json'
+        result_name = 'result_train'
     else:
-        result_name = 'result.json'
+        result_name = 'result'
+    suffix = ''
+    if args.sampling:
+        suffix += '_sampling'
+    if args.num_beams != 16:
+        suffix += f'_bs{args.num_beams}'
+    suffix += '.json'
+    result_name = result_name + suffix
 
     with open(os.path.join(args.result_path, result_name), "w", encoding="UTF-8") as file:
         json.dump(result, file, ensure_ascii=False, indent=4)
@@ -140,6 +147,7 @@ if __name__ == "__main__":
     # Hyperparameters
     parser.add_argument("--batch_size", type=int, default=16, help="testing batch size")
     parser.add_argument("--num_beams", type=int, default=16, help="number of beams(generated sequences) per inference")
+    parser.add_argument("--lenpen", type=float, default=1.0, help="length penalty for beam search")
 
     # Checkpoint configs
     parser.add_argument("--model_path", type=str, required=True)
@@ -147,7 +155,8 @@ if __name__ == "__main__":
     parser.add_argument("--model_postfix", default=None, help="Name for the model.")
     parser.add_argument("--base_model", required=False, default="bart", choices=["bart", "t5", "marian-ende", "marian-enfr", "marian-enro"], help="Base model to train. If using `from_checkpoint`, you do not need to specify this option.")
 
-    parser.add_argument("--secure", required=False, action="store_true", help="")
+    parser.add_argument("--secure", action="store_true", help="")
+    parser.add_argument("--sampling", action="store_true", help="")
 
     args = parser.parse_args()
     main(args)

@@ -98,16 +98,13 @@ class MRTParaphraser(ParaphraserBase):
                 input_ids=ith_input_ids.to(self.base.device),
                 labels=target.to(self.base.device),
             ).logits # num_beams, seq_len, vocab_size
-            probs = logits.softmax(dim=-1).reshape(-1, logits.shape[-1]) # [B*T,V]
+            # rescale probs for vanishing
+            probs = torch.log_softmax(logits, dim=-1).reshape(-1, logits.shape[-1]) # [B*T,V]
+            probs = probs - torch.mean(probs)
+            probs = torch.exp(probs)
+            # calculate sequence probs
             probs = torch.gather(probs, -1, index=target.reshape(-1).unsqueeze(-1)).reshape(target.shape) # [B, T]
             probs = probs * (target != self.pad_id).to(torch.float32)
-
-            # Following the original paper(MRT),
-            # Take (product of probs)=exp(sum of log-probs) as sequence probability
-            # seq_probs = torch.sum(probs, dim=1) # [B]
-            # normalize to prevent overflow/underflow
-            # seq_probs -= torch.mean(seq_probs)
-            # seq_probs = torch.exp(seq_probs)
             
             # Calculate loss
             total_loss_per_sample = torch.sum(probs * (1 - scores[i].unsqueeze(1)))

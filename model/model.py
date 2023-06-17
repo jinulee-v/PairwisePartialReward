@@ -29,19 +29,6 @@ class ParaphraserBase(nn.Module):
         self.num_beams = num_beams
         # self.device = device
 
-    def forward(self, gen_inputs, gen_outputs, generative=True, contrastive=False, mix_rate=1):
-        # NLL loss from the decoder head
-        loss = 0
-        if generative:
-            new_loss = self.get_generation_loss(gen_inputs, gen_outputs)
-            loss += new_loss
-
-        # Contrast learning in fine-tune state
-        if contrastive:
-            new_loss= self.get_contrastive_loss(gen_inputs, gen_outputs)
-            loss += new_loss * mix_rate # Multiply mix_rate for weighted sum
-        return loss
-
     def get_generation_loss(self, inputs, outputs):
         """
         Calculates classic teacher-forced generation loss.
@@ -70,21 +57,9 @@ class ParaphraserBase(nn.Module):
             inputs.to(self.base.device),
             labels=outputs.to(self.base.device),
         ).loss
-        
         return loss
     
-    def get_contrastive_loss(self, inputs, outputs):
-        """
-        Calculates classic teacher-forced generation loss.
-        @param inputs List[str]
-        @param outputs List[str]
-
-        @return loss
-        """
-        # UNIMPLEMENTED
-        raise NotImplementedError()
-
-    def generate(self, inputs, skip_special_tokens=True):
+    def generate(self, inputs, skip_special_tokens=True, sampling=False, **kwargs):
         batch_size = len(inputs)
 
         # Tokenize
@@ -93,15 +68,30 @@ class ParaphraserBase(nn.Module):
         # input_ids = pad_sequence(input_ids, batch_first=True, padding_value=self.pad_id).to(self.device)
 
         # Run BART generation: DFA based generation
-        output = self.base.generate(
-            inputs.to(self.base.device),
-            num_beams=self.num_beams,
-            # Output control
-            max_new_tokens=int(inputs.shape[1] * 1.5),
-            num_return_sequences=self.num_beams,
-            return_dict_in_generate=True,
-            output_scores=True,
-        )
+        if sampling:
+            new_inputs = inputs.to(self.base.device).repeat(self.num_beams, 1)
+            output = self.base.generate(
+                new_inputs,
+                do_sample=True,
+                num_beams=1,
+                # Output control
+                max_new_tokens=int(inputs.shape[1] * 1.5),
+                num_return_sequences=self.num_beams,
+                return_dict_in_generate=True,
+                output_scores=True,
+                **kwargs,
+            )
+        else:
+            output = self.base.generate(
+                inputs.to(self.base.device),
+                num_beams=self.num_beams,
+                # Output control
+                max_new_tokens=int(inputs.shape[1] * 1.5),
+                num_return_sequences=self.num_beams,
+                return_dict_in_generate=True,
+                output_scores=True,
+                **kwargs,
+            )
         # Convert ids to tokens
         output = self.tokenizer.batch_decode(output.sequences, skip_special_tokens=skip_special_tokens)
         
