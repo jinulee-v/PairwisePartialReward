@@ -4,8 +4,9 @@ lib/*
 pyvenv.cfg
 share
 
-# model parameters
+# model training results(checkpoints and evaluation logs)
 checkpoints/*
+results/*
 
 # execution
 */__pycache__/*
@@ -21,3 +22,6 @@ checkpoints/*
 # Data not used
 data/parabank*
 data/wmt*
+
+# gitkeep
+!*/.gitkeep

@@ -77,7 +77,8 @@ def main(args):
 
     # How frequently does the model copy the input?
     first_beam = [beam[0] for beam in outputs]
-    first_beam_eq_input = sum([(1 if x==y else 0) for x, y in zip(reference, first_beam)])
+    mod_reference = [x.replace("paraphrase: ", "") for x in reference] # remove T5 headers from reference if present
+    first_beam_eq_input = sum([(1 if x==y else 0) for x, y in zip(mod_reference, first_beam)])
     first_beam_eq_ratio = first_beam_eq_input / len(reference) * 100
 
     logger.info("=================================================")
