@@ -12,7 +12,7 @@ from transformers import (
 
 # from scipy.stats import rankdata
 
-from .arguments import TrieCLArguments
+from .arguments import PPRArguments
 from .model import ParaphraserBase
 from .dataset import get_prefix
 from .metrics import SequenceEvaluationMetric
@@ -28,7 +28,7 @@ class MRTParaphraser(ParaphraserBase):
             base: PreTrainedModel,
             tokenizer: PreTrainedTokenizer,
             metric: SequenceEvaluationMetric,
-            args: TrieCLArguments,
+            args: PPRArguments,
             **kwargs):
         super(MRTParaphraser, self).__init__(base, tokenizer, num_beams=args.num_beams)
 

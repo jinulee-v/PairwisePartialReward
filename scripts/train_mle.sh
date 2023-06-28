@@ -11,7 +11,7 @@ if [ ! -d $output_dir ];then
     mkdir -p $output_dir
 fi
 
-CUDA_VISIBLE_DEVICES=$2 python train_trainer.py \
+CUDA_VISIBLE_DEVICES=$2 python train.py \
   --output_dir $output_dir \
   --overwrite_output_dir \
   --do_train \
@@ -32,7 +32,7 @@ CUDA_VISIBLE_DEVICES=$2 python train_trainer.py \
   --base_model $base_model \
   --train_data data/${dataset}_paragen_train.json \
   --dev_data data/${dataset}_paragen_dev.json \
-  --loss_fn triecl \
+  --loss_fn ppr \
   --model_postfix ${model} \
   --num_beams 16 \
   --generative \

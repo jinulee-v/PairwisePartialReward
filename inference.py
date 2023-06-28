@@ -8,11 +8,12 @@ from tqdm import tqdm
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
+from torch.nn.utils.rnn import pad_sequence
 
 from transformers import BartForConditionalGeneration, T5ForConditionalGeneration, MarianMTModel, AutoTokenizer
 
 from model.model import ParaphraserBase as Paraphraser
-from model.dataset import TextGenerationDataset, tg_collate_fn
+from model.dataset import TextGenerationDataset
 
 MODEL_ID = {
     'bart': 'facebook/bart-base',
@@ -33,18 +34,8 @@ def main(args):
     # Set torch
     torch.manual_seed(0)
 
-    # For simplicity, if a directory is given, load the last checkpoint(last name in alphabetical order)
-    if args.model_store_path.endswith(".pt"):
-        model_store_path = args.model_store_path
-    else:
-        assert os.path.isdir(args.model_store_path)
-        log_path = model_store_path = os.path.join(args.model_store_path, args.model_postfix)
-        assert os.path.isdir(model_store_path)
-        last_checkpoint = sorted([f for f in os.listdir(model_store_path) if f.endswith(".pt")], reverse=True)[0]
-        model_store_path = os.path.join(args.model_store_path, args.model_postfix, last_checkpoint)
-
     # Set device
-    device = torch.device(f"cuda:{args.gpu}" if torch.cuda.is_available() else "cpu")
+    device = torch.device('cuda') if torch.cuda.is_available() else "cpu"
 
     # Init logger
     formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
@@ -52,9 +43,9 @@ def main(args):
     stdout_handler.setFormatter(formatter)
     if not args.secure:
         # Remove original log file
-        if os.path.exists(os.path.join(model_store_path, "inference.log")):
-            os.remove(os.path.join(model_store_path, "inference.log"))
-    file_handler = logging.FileHandler(os.path.join(log_path, "inference.log"))
+        if os.path.exists(os.path.join(args.result_path, "inference.log")):
+            os.remove(os.path.join(args.result_path, "inference.log"))
+    file_handler = logging.FileHandler(os.path.join(args.result_path, "inference.log"))
     file_handler.setFormatter(formatter)
     logger = logging.getLogger('')
     logger.handlers.clear()
@@ -81,51 +72,72 @@ def main(args):
         base_tokenizer,
         num_beams=args.num_beams
     )
-    model.load_state_dict(torch.load(model_store_path, map_location=device))
+    model.load_state_dict(torch.load(args.model_path, map_location=device))
     model.device = device
     model = model.to(device)
 
     # Load data
     with open(args.test_data, "r", encoding='UTF-8') as file:
         test_data = json.load(file)
-    test_dataset = TextGenerationDataset(test_data, shuffle=False)
-    test_loader = DataLoader(test_dataset, shuffle=False, batch_size=args.batch_size, collate_fn=tg_collate_fn)
+    
+    def tg_collate_fn(batch):
+        src, tgt = zip(*batch)
+        src = pad_sequence(src, batch_first=True, padding_value=base_tokenizer.pad_token_id)
+        tgt = pad_sequence(tgt, batch_first=True, padding_value=base_tokenizer.pad_token_id)
+        return src, tgt
+
+    ls = [x for x in args.model_postfix.split('_') if 'seed' not in x]
+    cpath = '.cache/' + '_'.join(ls)
+
+    if 'dev' in args.test_data:
+        split = 'dev'
+    elif 'train' in args.test_data:
+        split = 'train'
+    else:
+        split = 'test'
+
+    test_dataset = TextGenerationDataset(base_tokenizer, test_data, cpath + f'_{split}.pkl', shuffle=False)
+    test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=args.batch_size, collate_fn=tg_collate_fn)
 
     # Eval phase (on dev set)
     model.eval()
-
     result = []
-    first_batch=True
-    for data in tqdm(test_loader):
-        sources, targets = data
-        with torch.no_grad():
-            outputs = model.generate(sources)
-
-        for output, source, target in zip(outputs, sources, targets):
-            result.append({
-                "source": source,
-                "target": target,
-                "outputs": output
-            })
-
-        if first_batch:
-            test_input = sources[0]
-            test_outputs = outputs[0]
-            first_batch = False
     
-    result_store_path = os.path.join(args.model_store_path, args.model_postfix, "result.json")
-    with open(result_store_path, "w", encoding="UTF-8") as file:
+    with torch.inference_mode():        
+        for data in tqdm(test_dataloader):
+            sources, targets = data
+            outputs = model.generate(sources, sampling=args.sampling, length_penalty=args.lenpen)
+            # hypos = [output[0] for output in outputs]
+            sources_decode = base_tokenizer.batch_decode(sources, skip_special_tokens=True)
+            targets_decode = base_tokenizer.batch_decode(targets, skip_special_tokens=True)
+
+            for output, source, target in zip(outputs, sources_decode, targets_decode):
+                result.append({
+                    "source": source,
+                    "target": target,
+                    "outputs": output
+                })
+    
+    if 'dev' in args.test_data:
+        result_name = 'result_dev'
+    elif 'train' in args.test_data:
+        result_name = 'result_train'
+    else:
+        result_name = 'result'
+    suffix = ''
+    if args.sampling:
+        suffix += '_sampling'
+    if args.num_beams != 16:
+        suffix += f'_bs{args.num_beams}'
+    suffix += '.json'
+    result_name = result_name + suffix
+
+    with open(os.path.join(args.result_path, result_name), "w", encoding="UTF-8") as file:
         json.dump(result, file, ensure_ascii=False, indent=4)
 
-    logger.info("=================================================")
-    logger.info("Test generation result")
-    logger.info(f"input: {test_input}")
-    logger.info(f"output:")
-    for test_output in test_outputs:
-        logger.info(f"  {test_output}")
-    logger.info("")
-
-    logger.info("=================================================")
+    import pickle
+    with open(os.path.join(args.result_path, result_name[:-4] + 'pkl'), 'wb') as f:
+        pickle.dump(result, f)
 
 if __name__ == "__main__":
     parser = ArgumentParser()
@@ -135,14 +147,16 @@ if __name__ == "__main__":
     # Hyperparameters
     parser.add_argument("--batch_size", type=int, default=16, help="testing batch size")
     parser.add_argument("--num_beams", type=int, default=16, help="number of beams(generated sequences) per inference")
+    parser.add_argument("--lenpen", type=float, default=1.0, help="length penalty for beam search")
 
     # Checkpoint configs
-    parser.add_argument("--model_store_path", required=False, default='checkpoints', help="Directory to store model checkpoints.")
-    parser.add_argument("--model_postfix", required=True, help="Name for the model.")
+    parser.add_argument("--model_path", type=str, required=True)
+    parser.add_argument("--result_path", type=str, required=True)
+    parser.add_argument("--model_postfix", default=None, help="Name for the model.")
     parser.add_argument("--base_model", required=False, default="bart", choices=["bart", "t5", "marian-ende", "marian-enfr", "marian-enro"], help="Base model to train. If using `from_checkpoint`, you do not need to specify this option.")
 
-    parser.add_argument("--gpu", type=int, default=0, help="CUDA index for training")
-    parser.add_argument("--secure", required=False, action="store_true", help="")
+    parser.add_argument("--secure", action="store_true", help="")
+    parser.add_argument("--sampling", action="store_true", help="")
 
     args = parser.parse_args()
     main(args)

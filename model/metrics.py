@@ -12,7 +12,7 @@ from statistics import NormalDist
 from functools import wraps
 import logging 
 
-from .arguments import TrieCLArguments, EvaluationArguments
+from .arguments import PPRArguments, EvaluationArguments
 from .perplexity import Perplexity
 
 def suspend_logging(func):

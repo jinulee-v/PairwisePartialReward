@@ -7,6 +7,7 @@ from transformers import (
     PreTrainedTokenizer,
     LogitsProcessorList
 )
+from .dataset import get_prefix
 
 class ParaphraserBase(nn.Module):
     """
@@ -147,80 +148,139 @@ class ParaphraserBase(nn.Module):
                 i += 1
         return results
 
-    def branching_test(self, inputs, output_prefixes, better, worse):
+    def branching_test(self, src, metric=None):
         """
-        Script for testing branching.
-        @param inputs List[str]
-        @param output_prefixes List[List[int]]
-        @param better List[int]
-        @param worse List[int]
-
+        Calculates the token_wise contrastive loss.
         @return loss
         """
-        # Transform batch to list
-        inputs, output_prefixes, better, worse = list(inputs), list(output_prefixes), list(better), list(worse)
+        if hasattr(self, 'metric'):
+            metric = self.metric
 
-        # Tokenize
-        input_ids = self.tokenizer(inputs, truncation=True)["input_ids"]
-        input_ids = [torch.tensor(idx, device=self.base.device) for idx in input_ids]
-        input_ids = pad_sequence(input_ids, batch_first=True, padding_value=self.pad_id)
-        input_attention_mask = input_ids != self.pad_id
+        batch_size, _ = src.shape
+        # beam_size = hypos[0].shape[0]
+        beam_size = self.num_beams
 
-        # output_ids = self.tokenizer(output_prefixes, truncation=True)["input_ids"]
-        # better_ids = self.tokenizer(better, add_special_tokens=False)["input_ids"]
-        # worse_ids = self.tokenizer(worse, add_special_tokens=False)["input_ids"]
-        output_ids = output_prefixes
-        better_ids = better
-        worse_ids = worse
-        first_diff_tok_idx = list(zip(better_ids, worse_ids))
-        # If first few tokens overlap, add the overlaping region to output_ids
-        # for out, o, s in zip(output_ids, better_ids, worse_ids):
-        #     i = 0
-        #     try:
-        #         while o[i] == s[i]:
-        #             out.append(o[i])
-        #             i+=1
-        #         assert o[i] != s[i]
-        #         first_diff_tok_idx.append([o[i], s[i]])
-        #     except IndexError:
-        #         raise ValueError(f"better & worse must be different: better={self.tokenizer.decode(o)}, worse={self.tokenizer.decode(s)}")
+        with torch.no_grad():
+            # Generate in beam sequences(beam size = batch size)
+            output = self.base.generate(
+                src.to(self.base.device),
+                num_beams=self.num_beams,
+                # Output control
+                # max_new_tokens=int(input_ids.size(1)),
+                num_return_sequences=self.num_beams,
+                return_dict_in_generate=True,
+                output_scores=True,
+                early_stopping=True
+            )
+            sequences = output.sequences.reshape(batch_size, self.num_beams, -1)
+            if self.tokenizer.bos_token_id is not None:
+                bos_index = sequences[0, 0].tolist().index(self.tokenizer.bos_token_id)
+                sequences = sequences[:, :, bos_index:].contiguous()
+            else:
+                pad_index = sequences[0, 0].tolist().index(self.tokenizer.pad_token_id)
+                sequences = sequences[:, :, pad_index+1:].contiguous()
 
-        output_ids = [torch.tensor(idx, device=self.base.device) for idx in output_ids]
-        output_ids = pad_sequence(output_ids, batch_first=True, padding_value=self.pad_id)
-        output_ids[output_ids==self.tokenizer.eos_token_id] = self.pad_id # replace EOS to PAD
-        output_attention_mask = output_ids != self.pad_id
-        boundaries = torch.sum(output_attention_mask, dim=1)-1
+            samples_str = self.tokenizer.batch_decode(sequences.view(-1, sequences.size(-1)), skip_special_tokens=True) # aggregate batch & sample IDs
+            hypos = sequences
+            sequences = sequences.tolist()
 
-        first_diff_tok_idx = torch.tensor(first_diff_tok_idx, dtype=torch.long, device=self.device)
+        # Rank the outputs
+        sources_decode = self.tokenizer.batch_decode(src, skip_special_tokens=True) # [B]
+        extended_inputs = [x for x in sources_decode for _ in range(beam_size)]
 
-        logits = self.base(
-            input_ids=input_ids,
-            attention_mask=input_attention_mask,
-            decoder_input_ids=output_ids,
-            decoder_attention_mask = output_attention_mask
-        ).logits # batch_size, seq_len, vocab_size
-        logits_gather_index = torch.tile(boundaries.unsqueeze(1).unsqueeze(2), (1, 1, logits.size(2)))
-        logits = torch.gather(logits, 1, logits_gather_index).squeeze(1) # batch_size, vocab_size
+        scores = metric(extended_inputs, None, samples_str, (batch_size, beam_size), extended=True).reshape(batch_size, beam_size).cpu() # batch_size * num_beams
+        # Extract common prefixes out of the prefix tree
+        all_branches, all_win_indices, all_lose_indices = get_prefix(sequences, scores, self.tokenizer.pad_token_id)
 
-        # Calculate logprob_diff
-        # logprob_diff = logp(better) - logp(worse)
-        logprob = F.log_softmax(logits, dim=1)
-        compare_logprob = torch.gather(logprob, 1, first_diff_tok_idx) # batch_size, 2
-        logprob_diff = compare_logprob[:, 0] - compare_logprob[:, 1]
-        better_prob = torch.gather(logprob, 1, first_diff_tok_idx[:, 0].unsqueeze(1)).squeeze(1) # batch_size, 1
-        worse_prob = torch.gather(logprob, 1, first_diff_tok_idx[:, 1].unsqueeze(1)).squeeze(1) # batch_size, 1
-
-        # Calculate worse_rank
-        ranks = torch.argsort(logprob, dim=1, descending=True)
-        better_rank = torch.gather(ranks, 1, first_diff_tok_idx[:, 0].unsqueeze(1)).squeeze(1) # batch_size, 1
-        worse_rank = torch.gather(ranks, 1, first_diff_tok_idx[:, 1].unsqueeze(1)).squeeze(1) # batch_size, 1
-        rank_diff = better_rank - worse_rank
+        win_count = [0 for _ in range(hypos.size(2))]; total_count = [0 for _ in range(hypos.size(2))]
+        # cnt = 0
+        for i in range(batch_size):
+            ith_input_ids = src[i].repeat(beam_size, 1)
+            branches = all_branches[i]
+            win_indices = all_win_indices[i]
+            lose_indices = all_lose_indices[i]
+            target = hypos[i]
+            logits = self.base(
+                input_ids=ith_input_ids.to(self.base.device),
+                labels=target.to(self.base.device),
+            ).logits # num_beams, seq_len, vocab_size
+            probs = logits.softmax(dim=-1).reshape(-1, logits.shape[-1]) # [B*T,V]
+            probs = torch.gather(probs, -1, index=target.reshape(-1).unsqueeze(-1)).reshape(target.shape) # [B, T]
+            lose_x, lose_y = zip(*lose_indices)
+            win_x, win_y = zip(*win_indices)
+            wins = (probs[lose_x, lose_y] < probs[win_x, win_y]).to(torch.long)
+            win_count[branches[i][0]] += torch.sum(wins)
+            total_count[branches[i][0]] += torch.numel(wins)
         
-        return {
-            "better_prob": better_prob.tolist(),
-            "worse_prob": worse_prob.tolist(),
-            "logprob_diff": logprob_diff.tolist(),
-            "better_rank": better_rank.tolist(),
-            "worse_rank": worse_rank.tolist(),
-            "rank_diff": rank_diff.tolist()
-        }
+        return win_count, total_count
+    
+    def token_rank(self, src, metric=None):
+        if hasattr(self, 'metric'):
+            metric = self.metric
+
+        batch_size, _ = src.shape
+        # beam_size = hypos[0].shape[0]
+        beam_size = self.num_beams
+
+        with torch.no_grad():
+            # Generate in beam sequences(beam size = batch size)
+            output = self.base.generate(
+                src.to(self.base.device),
+                num_beams=self.num_beams,
+                # Output control
+                # max_new_tokens=int(input_ids.size(1)),
+                num_return_sequences=self.num_beams,
+                return_dict_in_generate=True,
+                output_scores=True,
+                early_stopping=True
+            )
+            sequences = output.sequences.reshape(batch_size, self.num_beams, -1)
+            if self.tokenizer.bos_token_id is not None:
+                bos_index = sequences[0, 0].tolist().index(self.tokenizer.bos_token_id)
+                sequences = sequences[:, :, bos_index:].contiguous()
+            else:
+                pad_index = sequences[0, 0].tolist().index(self.tokenizer.pad_token_id)
+                sequences = sequences[:, :, pad_index+1:].contiguous()
+
+            samples_str = self.tokenizer.batch_decode(sequences.view(-1, sequences.size(-1)), skip_special_tokens=True) # aggregate batch & sample IDs
+
+            token_scores = torch.stack(output.scores, dim=1)
+            token_scores = token_scores.reshape(batch_size, beam_size, -1, token_scores.size(2))
+            # batch_size, beam_size, seq_len, vocab_size
+
+            if token_scores.size(2) != sequences.size(2):
+                print(token_scores.size(2), sequences.size(2))
+                exit()
+            
+
+        # Rank the outputs with oracle -> Deprecated
+        # sources_decode = self.tokenizer.batch_decode(src, skip_special_tokens=True) # [B]
+        # extended_inputs = [x for x in sources_decode for _ in range(beam_size)] 
+        # scores = metric(extended_inputs, None, samples_str, (batch_size, beam_size), extended=True).reshape(batch_size, beam_size) # batch_size * num_beams
+        # best_seq_idx = torch.argmax(scores, dim=1)
+        # Instead, select the best token
+        best_seq_idx = torch.zeros((batch_size), dtype=torch.long, device=sequences.device)
+        # best_seq_idx: batch_size
+        best_seq = torch.gather(sequences, 1, best_seq_idx.unsqueeze(1).unsqueeze(2).tile(1, 1, sequences.size(-1))).squeeze(1)
+        # best_seq: batch_size, max_len
+
+        # batch_size, beam_size, seq_len, vocab_size
+        best_seq_logit_rank = torch.gather(token_scores, 1, best_seq_idx.unsqueeze(1).unsqueeze(2).unsqueeze(3).tile(1, 1, token_scores.size(2), self.base.config.vocab_size)).squeeze(1)
+        # batch_size, seq_len, vocab_size
+        def get_rank(x, indices):
+            vals = x[range(x.size(0)), indices]
+            return (x > vals[:, None]).long().sum(dim=1)
+        best_seq_logit_rank = get_rank(best_seq_logit_rank.reshape(-1, self.base.config.vocab_size), best_seq.reshape(-1))
+        best_seq_logit_rank = best_seq_logit_rank.reshape(best_seq.size(0), best_seq.size(1))
+        best_seq_logit_rank = (1 / (1+best_seq_logit_rank)) # Inverse rank
+        
+        # Length filtering
+        LENGTH=10
+        best_seq_logit_rank *= (best_seq[:, LENGTH] == self.tokenizer.eos_token_id).unsqueeze(1)
+        best_seq *= (best_seq[:, LENGTH] == self.tokenizer.eos_token_id).unsqueeze(1)
+        
+        best_seq_logit_rank *= ((best_seq) != 0).to(torch.long)
+
+        # return sum of average, element that is zero(greedy top rank), sum
+        return torch.sum(best_seq_logit_rank, dim=0), torch.sum(best_seq != 0, dim=0) # batch-sum, length info preserved
+        

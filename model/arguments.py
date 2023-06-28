@@ -121,9 +121,9 @@ class ModelArguments:
     )
 
 @dataclass
-class TrieCLArguments:
+class PPRArguments:
     """
-    Arguments pertaining to TrieCL functionalities.
+    Arguments pertaining to PPR functionalities.
     """
 
     train_data: str
@@ -142,11 +142,11 @@ class TrieCLArguments:
     from_checkpoint: str = None
     from_scratch: bool = False
 
-    loss_fn: Literal["triecl", "brio", "mrt"] = "triecl"
+    loss_fn: Literal["ppr", "brio", "mrt"] = "ppr"
 
     contrast_lambda: float = field(
         default=0.5,
-        metadata={"help": "Contrast hinge value (default: triecl==0.5, brio==0.01)"},
+        metadata={"help": "Contrast hinge value (default: ppr==0.5, brio==0.01)"},
     )
     mix_rate: float = 1
 

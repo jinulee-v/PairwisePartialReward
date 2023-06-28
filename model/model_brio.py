@@ -11,7 +11,7 @@ from transformers import (
 
 from scipy.stats import rankdata
 
-from .arguments import TrieCLArguments
+from .arguments import PPRArguments
 from .model import ParaphraserBase
 from .metrics import SequenceEvaluationMetric
 
@@ -24,7 +24,7 @@ class BRIOParaphraser(ParaphraserBase):
             base: PreTrainedModel,
             tokenizer: PreTrainedTokenizer,
             metric: SequenceEvaluationMetric,
-            args: TrieCLArguments,
+            args: PPRArguments,
             **kwargs):
         super(BRIOParaphraser, self).__init__(base, tokenizer, num_beams=args.num_beams)
 

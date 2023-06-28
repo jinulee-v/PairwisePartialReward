@@ -48,7 +48,7 @@ class TextGenerationDataset(Dataset):
             return datum["source"], datum["targets"][0]
 
 
-def _dfs(subtree, rank, curr_seq_len: int, branches: Set[Tuple[int, int, List[int]]]):
+def _dfs(subtree, rank, curr_seq_len: int, branches: List[Tuple[int, int, List[int]]]):
     """
     DFS function for Trie traversal.
     """
@@ -75,12 +75,12 @@ def _dfs(subtree, rank, curr_seq_len: int, branches: Set[Tuple[int, int, List[in
         # for not_best_token in not_best_tokens:
             # results.append((curr_seq[:], best_token[0], not_best_token))
         # if not_best_tokens:
-        branches.add((curr_seq_len, best_token[1], tuple(x for _, x in sorted(not_best_tokens)), s)) # position, best seq id, other seq ids
+        branches.append((curr_seq_len, best_token[1], tuple(x for _, x in sorted(not_best_tokens)), s)) # position, best seq id, other seq ids
         # else:
         #     non_branches.append(len(curr_seq), best_token[1])
     else: # Not branching
         for token, value in subtree.items():
-            branches.add((curr_seq_len, value[0], (), value[2]))
+            branches.append((curr_seq_len, value[0], (), value[2]))
 
     for token, value in subtree.items():
         curr_seq_len += 1
@@ -110,7 +110,7 @@ def get_prefix(sequences, scores_all, pad_token_id, strategy='dominate', add_ref
                     curr_trie = curr_trie[tok][1]
 
         # Extract prefix pairs and the branching token
-        branches = set()
+        branches = list()
         _dfs(trie, rank, 0, branches)
 
         # branch: position, best_seq_id, other_seq_ids, num_seqs

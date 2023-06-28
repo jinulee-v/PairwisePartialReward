@@ -12,23 +12,23 @@ from transformers import (
 
 # from scipy.stats import rankdata
 
-from .arguments import TrieCLArguments
+from .arguments import PPRArguments
 from .model import ParaphraserBase
 from .dataset import get_prefix
 from .metrics import SequenceEvaluationMetric
 
-class TrieCLParaphraser(ParaphraserBase):
+class PPRParaphraser(ParaphraserBase):
     """
-    Implementation of TrieCL(proposed) for diverse paraphrase generation
+    Implementation of PPR(proposed) for diverse paraphrase generation
     """
 
     def __init__(self,
             base: PreTrainedModel,
             tokenizer: PreTrainedTokenizer,
             metric: SequenceEvaluationMetric,
-            args: TrieCLArguments,
+            args: PPRArguments,
             **kwargs):
-        super(TrieCLParaphraser, self).__init__(base, tokenizer, args.num_beams)
+        super(PPRParaphraser, self).__init__(base, tokenizer, args.num_beams)
 
         self.metric = metric
         self.pad_id = self.base.config.pad_token_id

@@ -11,7 +11,7 @@ if [ ! -d $output_dir ];then
     mkdir -p $output_dir
 fi
 
-CUDA_VISIBLE_DEVICES=$2 python train_trainer.py \
+CUDA_VISIBLE_DEVICES=$2 python train.py \
   --output_dir $output_dir \
   --overwrite_output_dir \
   --do_train \

@@ -1,5 +1,5 @@
 gpu=$1
-mp=${2}_${3}_${4}
+mp=$2
 
 cd ..
 
@@ -13,6 +13,6 @@ run() {
 }
 
 run 'default' # raw bert-ibleu with unsmoothed bleu
-run 'sacre --use_sacre' # raw bert-ibleu with sacrebleu (by default smoothed)
-run 'fluency_soft --fluency --use_sacre' # bert-ibleu-ppl with soft threshold
-run 'fluency_hard --fluency --use_sacre --fluency_hard_threshold' # bert-ibleu-ppl with hard threshold
+# run 'sacre --use_sacre' # raw bert-ibleu with sacrebleu (by default smoothed)
+# run 'fluency_soft --fluency --use_sacre' # bert-ibleu-ppl with soft threshold
+# run 'fluency_hard --fluency --use_sacre --fluency_hard_threshold' # bert-ibleu-ppl with hard threshold
